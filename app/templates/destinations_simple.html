@@ -9,9 +9,11 @@
             <h1>
                 <i class="fas fa-cloud-upload-alt"></i> Data Destinations
             </h1>
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addDestinationModal">
-                <i class="fas fa-plus"></i> Add Destination
-            </button>
+            <div>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addDestinationModal">
+                    <i class="fas fa-plus"></i> Add Destination
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -111,6 +113,40 @@
                         <label for="editDestinationDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="editDestinationDescription" rows="3"></textarea>
                     </div>
+
+                    <!-- Variables Section -->
+                    <div id="variablesSection" style="display:none;">
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0"><i class="fas fa-dollar-sign"></i> Variables <span class="badge bg-info">Tool Configuration</span></h6>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="addVariableBtn">
+                                <i class="fas fa-plus"></i> Add Variable
+                            </button>
+                        </div>
+                        <div id="variablesList" class="mb-3">
+                            <!-- Variables will be loaded here -->
+                        </div>
+                        <small class="text-muted">These variables were extracted from your Postman collection. Set values for URL placeholders like {{account_id}}.</small>
+                    </div>
+
+                    <!-- Authentication Section -->
+                    <div id="authSection" style="display:none;">
+                        <hr>
+                        <h6><i class="fas fa-key"></i> Authentication <span class="badge bg-warning" id="authTypeBadge"></span></h6>
+                        <div id="authDetails" class="mb-3 small text-muted">
+                            <!-- Auth details will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Schema/Fields Section -->
+                    <div id="schemaSection" style="display:none;">
+                        <hr>
+                        <h6><i class="fas fa-list"></i> Expected Fields <span class="badge bg-success">For Mapping</span></h6>
+                        <div id="schemaFieldsList" class="mb-3">
+                            <!-- Schema fields will be loaded here -->
+                        </div>
+                        <small class="text-muted">These fields were extracted from request bodies in the Postman collection.</small>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -120,6 +156,7 @@
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -172,15 +209,29 @@ $(document).ready(function() {
             type: $('#editDestinationType').val(),
             description: $('#editDestinationDescription').val()
         };
-        
+
         // Parse configuration JSON
         try {
-            destinationData.config = $('#editDestinationConfig').val() ? JSON.parse($('#editDestinationConfig').val()) : {};
+            destinationData.connection_config = $('#editDestinationConfig').val() ? JSON.parse($('#editDestinationConfig').val()) : {};
         } catch (e) {
             alert('Invalid JSON configuration');
             return;
         }
-        
+
+        // Collect variable values from inputs
+        $('.variable-input').each(function() {
+            const varName = $(this).data('var-name');
+            const varValue = $(this).val();
+
+            if (!destinationData.connection_config.variables) {
+                destinationData.connection_config.variables = {};
+            }
+
+            if (destinationData.connection_config.variables[varName]) {
+                destinationData.connection_config.variables[varName].value = varValue;
+            }
+        });
+
         $.ajax({
             url: '/api/destinations/' + destinationId,
             method: 'PUT',
@@ -207,76 +258,318 @@ function loadDestinations() {
         if (data.success) {
             const destinations = data.data;
             let html = '';
-            
+
             if (destinations.length === 0) {
-                html = `
-                    <div class="text-center py-5">
-                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
-                        <h4>No destinations configured</h4>
-                        <p class="text-muted">Add your first destination to get started</p>
-                    </div>
-                `;
+                html = '<div class="text-center py-5">';
+                html += '<i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>';
+                html += '<h4>No destinations configured</h4>';
+                html += '<p class="text-muted">Add your first destination to get started</p>';
+                html += '</div>';
             } else {
-                html = `
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Description</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                
+                // Group destinations by tool
+                const groupedByTool = {};
                 destinations.forEach(function(destination) {
-                    const typeIcon = getTypeIcon(destination.type);
-                    html += `
-                        <tr>
-                            <td>
-                                <strong>${destination.name}</strong>
-                            </td>
-                            <td>
-                                <span class="badge bg-success">
-                                    <i class="${typeIcon}"></i> ${destination.type.toUpperCase()}
-                                </span>
-                            </td>
-                            <td>${destination.description || '-'}</td>
-                            <td>
-                                <span class="badge bg-success">Active</span>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="editDestination('${destination.id}')">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-info" onclick="testDestination('${destination.id}')">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteDestination('${destination.id}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
+                    const config = destination.connection_config || destination.config || {};
+                    const toolName = config.service_type || destination.name || 'Other';
+
+                    if (!groupedByTool[toolName]) {
+                        groupedByTool[toolName] = [];
+                    }
+                    groupedByTool[toolName].push(destination);
                 });
-                
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
+
+                // Generate HTML for grouped view
+                Object.keys(groupedByTool).forEach(function(toolName, index) {
+                    const toolDestinations = groupedByTool[toolName];
+                    const collapseId = 'tool-' + toolName.replace(/\s+/g, '-').toLowerCase();
+
+                    html += '<div class="card mb-2">';
+                    html += '<div class="card-header bg-light">';
+                    html += '<div class="d-flex justify-content-between align-items-center">';
+                    html += '<h6 class="mb-0">';
+                    html += '<button class="btn btn-link text-decoration-none collapsed p-0" type="button" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false">';
+                    html += '<i class="fas fa-chevron-right me-2 toggle-icon"></i>';
+                    html += '<i class="fas fa-cube me-2 text-primary"></i>';
+                    html += '<strong>' + toolName + '</strong>';
+                    html += '<span class="badge bg-secondary ms-2">' + toolDestinations.length + ' endpoint' + (toolDestinations.length > 1 ? 's' : '') + '</span>';
+                    html += '</button>';
+                    html += '</h6>';
+                    html += '<div>';
+                    html += '<button class="btn btn-sm btn-outline-primary me-2" onclick="editToolVariables(\'' + toolName + '\')">';
+                    html += '<i class="fas fa-cog"></i> Configure';
+                    html += '</button>';
+                    html += '<button class="btn btn-sm btn-outline-danger" onclick="deleteToolDestinations(\'' + toolName + '\')">';
+                    html += '<i class="fas fa-trash"></i> Delete All';
+                    html += '</button>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '<div id="' + collapseId + '" class="collapse">';
+                    html += '<div class="card-body p-0">';
+                    html += '<table class="table table-sm table-hover mb-0">';
+                    html += '<thead class="table-light">';
+                    html += '<tr>';
+                    html += '<th>Name</th>';
+                    html += '<th>Type</th>';
+                    html += '<th>Description</th>';
+                    html += '<th>Actions</th>';
+                    html += '</tr>';
+                    html += '</thead>';
+                    html += '<tbody>';
+
+                    toolDestinations.forEach(function(destination) {
+                        const typeIcon = getTypeIcon(destination.type);
+                        html += '<tr>';
+                        html += '<td><strong>' + destination.name + '</strong></td>';
+                        html += '<td><span class="badge bg-success"><i class="' + typeIcon + '"></i> ' + destination.type.toUpperCase() + '</span></td>';
+                        html += '<td>' + (destination.description || '-') + '</td>';
+                        html += '<td>';
+                        html += '<button class="btn btn-sm btn-outline-primary" onclick="editDestination(\'' + destination.id + '\')">';
+                        html += '<i class="fas fa-edit"></i>';
+                        html += '</button> ';
+                        html += '<button class="btn btn-sm btn-outline-info" onclick="testDestination(\'' + destination.id + '\')">';
+                        html += '<i class="fas fa-play"></i>';
+                        html += '</button> ';
+                        html += '<button class="btn btn-sm btn-outline-danger" onclick="deleteDestination(\'' + destination.id + '\')">';
+                        html += '<i class="fas fa-trash"></i>';
+                        html += '</button>';
+                        html += '</td>';
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody>';
+                    html += '</table>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                });
             }
-            
+
             $('#destinationsTable').html(html);
+
+            // Add toggle icon rotation
+            $('.btn-link[data-bs-toggle="collapse"]').on('click', function() {
+                const icon = $(this).find('.toggle-icon');
+                icon.toggleClass('fa-chevron-right fa-chevron-down');
+            });
         } else {
             $('#destinationsTable').html('<div class="alert alert-danger">Failed to load destinations</div>');
         }
     }).fail(function() {
         $('#destinationsTable').html('<div class="alert alert-danger">Failed to connect to server</div>');
     });
+}
+
+function editToolVariables(toolName) {
+    // Load tool-level variables
+    $.get('/api/tool-variables/' + encodeURIComponent(toolName), function(toolVarsData) {
+        $.get('/api/destinations', function(data) {
+            if (data.success) {
+                const destinations = data.data;
+                const toolDest = destinations.find(function(d) {
+                    const config = d.connection_config || d.config || {};
+                    return (config.service_type || d.name) === toolName;
+                });
+
+                if (!toolDest) return;
+
+                const config = toolDest.connection_config || toolDest.config || {};
+                const configVars = config.variables || {};
+                const toolLevelVars = toolVarsData.data || {};
+
+                $('#editDestinationId').val(toolDest.id);
+                $('#editDestinationName').val(toolName);
+                $('#editDestinationType').val(toolDest.type);
+                $('#editDestinationConfig').val(JSON.stringify(config, null, 2));
+                $('#editDestinationDescription').val(toolDest.description);
+
+                currentDestinationConfig = config;
+                currentDestinationConfig.toolName = toolName;
+
+                $('#variablesList').empty();
+
+                if (Object.keys(configVars).length > 0) {
+                    Object.keys(configVars).forEach(function(varName) {
+                        const varData = configVars[varName];
+                        const currentValue = toolLevelVars[varName] || varData.value || '';
+                        addToolVariableRow(varName, varData, currentValue, toolName);
+                    });
+
+                    $('#variablesSection').show();
+                    $('#updateDestinationBtn').off('click').on('click', function() {
+                        saveToolVariables(toolName);
+                    });
+                    $('#addVariableBtn').off('click').on('click', addVariableToList);
+
+                    $('#serviceTypeBadge').remove();
+                    if (config.service_type) {
+                        $('#editDestinationName').after('<span class="badge bg-primary ms-2" id="serviceTypeBadge"><i class="fas fa-tag"></i> ' + config.service_type + '</span>');
+                    }
+                } else {
+                    $('#variablesSection').hide();
+                }
+
+                if (config.auth && config.auth.type) {
+                    $('#authTypeBadge').text(config.auth.type.toUpperCase());
+                    let authHtml = '<p><strong>Type:</strong> ' + config.auth.type + '</p>';
+                    if (config.auth.type === 'oauth1') {
+                        authHtml += '<p>OAuth 1.0a authentication.</p>';
+                    }
+                    $('#authDetails').html(authHtml);
+                    $('#authSection').show();
+                } else {
+                    $('#authSection').hide();
+                }
+
+                const schemaInfo = toolDest.schema_info || {};
+                if (schemaInfo.fields && schemaInfo.fields.length > 0) {
+                    let fieldsHtml = '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Field</th><th>Type</th></tr></thead><tbody>';
+                    schemaInfo.fields.forEach(function(field) {
+                        fieldsHtml += '<tr><td><code>' + field.name + '</code></td><td>' + field.type + '</td></tr>';
+                    });
+                    fieldsHtml += '</tbody></table></div>';
+                    $('#schemaFieldsList').html(fieldsHtml);
+                    $('#schemaSection').show();
+                } else {
+                    $('#schemaSection').hide();
+                }
+
+                $('#editDestinationModal').modal('show');
+            }
+        });
+    });
+}
+
+function addToolVariableRow(varName, varData, currentValue, toolName) {
+    const varType = varData.type || 'unknown';
+    const isRequired = varData.required ? '<span class="badge bg-danger">Required</span>' : '';
+    const typeIcon = varType === 'auth' ? 'fa-key' : (varType === 'url' ? 'fa-link' : 'fa-code');
+
+    let html = '<div class="mb-2 variable-row">';
+    html += '<label class="form-label">';
+    html += '<i class="fas ' + typeIcon + '"></i> ';
+    html += '<code>&#123;&#123;' + varName + '&#125;&#125;</code> ' + isRequired;
+    html += ' <span class="badge bg-success">Tool-Level</span>';
+    html += '</label>';
+    html += '<div class="input-group">';
+    html += '<input type="text" class="form-control tool-variable-input" data-var-name="' + varName + '" value="' + currentValue + '" placeholder="Enter value for ' + varName + '">';
+    html += '<button class="btn btn-outline-secondary btn-sm" type="button" onclick="assignFromResponse(\'' + varName + '\', \'' + toolName + '\')"><i class="fas fa-magic"></i> From API</button>';
+    html += '</div>';
+    html += '<small class="text-muted">' + (varData.description || 'Shared across all ' + toolName + ' endpoints') + '</small>';
+    html += '</div>';
+
+    $('#variablesList').append(html);
+}
+
+function saveToolVariables(toolName) {
+    const variables = {};
+    $('.tool-variable-input').each(function() {
+        variables[$(this).data('var-name')] = $(this).val();
+    });
+
+    $.ajax({
+        url: '/api/tool-variables/' + encodeURIComponent(toolName),
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({ variables: variables }),
+        success: function(data) {
+            if (data.success) {
+                $('#editDestinationModal').modal('hide');
+                loadDestinations();
+                showAlert('Variables for ' + toolName + ' saved successfully', 'success');
+            } else {
+                showAlert('Error: ' + data.error, 'danger');
+            }
+        },
+        error: function() {
+            showAlert('Failed to save variables', 'danger');
+        }
+    });
+}
+
+function assignFromResponse(varName, toolName) {
+    const value = prompt('Enter value for {{' + varName + '}} (paste from API response):');
+    if (value) {
+        $('.tool-variable-input[data-var-name="' + varName + '"]').val(value);
+        $.post('/api/tool-variables/' + encodeURIComponent(toolName) + '/assign', JSON.stringify({
+            variable_name: varName,
+            value: value
+        }), function() {
+            showAlert('Variable assigned', 'success');
+        }, 'json');
+    }
+}
+
+// Store current destination config globally for add variable functionality
+let currentDestinationConfig = null;
+
+function addVariableToList() {
+    if (!currentDestinationConfig || !currentDestinationConfig.variables) {
+        alert('No variables configuration found');
+        return;
+    }
+
+    // Get all variable names
+    const allVarNames = Object.keys(currentDestinationConfig.variables);
+    const currentlySet = [];
+    $('.variable-input').each(function() {
+        currentlySet.push($(this).data('var-name'));
+    });
+
+    // Find unset variables
+    const unsetVars = allVarNames.filter(function(v) {
+        return currentlySet.indexOf(v) === -1;
+    });
+
+    if (unsetVars.length === 0) {
+        alert('All variables from this tool are already added');
+        return;
+    }
+
+    // Show selection dropdown
+    let options = '<option value="">Select a variable...</option>';
+    unsetVars.forEach(function(varName) {
+        options += '<option value="' + varName + '">{{' + varName + '}}</option>';
+    });
+
+    const select = '<select class="form-select mb-2" id="varSelect">' + options + '</select>';
+    const existingSelect = $('#varSelect');
+
+    if (existingSelect.length) {
+        return; // Already showing
+    }
+
+    $(select).insertBefore('#variablesList');
+
+    $('#varSelect').on('change', function() {
+        const selectedVar = $(this).val();
+        if (selectedVar) {
+            const varData = currentDestinationConfig.variables[selectedVar];
+            addVariableRow(selectedVar, varData);
+            $(this).remove();
+        }
+    });
+}
+
+function addVariableRow(varName, varData) {
+    const varType = varData.type || 'unknown';
+    const isRequired = varData.required ? '<span class="badge bg-danger">Required</span>' : '';
+    const typeIcon = varType === 'auth' ? 'fa-key' : (varType === 'url' ? 'fa-link' : 'fa-code');
+    const currentValue = varData.value || '';
+
+    let html = '<div class="mb-2 variable-row">';
+    html += '<label class="form-label">';
+    html += '<i class="fas ' + typeIcon + '"></i> ';
+    html += '<code>&#123;&#123;' + varName + '&#125;&#125;</code> ' + isRequired;
+    html += '</label>';
+    html += '<div class="input-group">';
+    html += '<input type="text" class="form-control variable-input" data-var-name="' + varName + '" value="' + currentValue + '" placeholder="Enter value for ' + varName + '">';
+    html += '<button class="btn btn-outline-danger btn-sm" type="button" onclick="$(this).closest(\'.variable-row\').remove()"><i class="fas fa-times"></i></button>';
+    html += '</div>';
+    html += '<small class="text-muted">' + (varData.description || '') + '</small>';
+    html += '</div>';
+
+    $('#variablesList').append(html);
 }
 
 function getTypeIcon(type) {
@@ -294,11 +587,80 @@ function editDestination(destinationId) {
     $.get('/api/destinations/' + destinationId, function(data) {
         if (data.success) {
             const destination = data.data;
+            const config = destination.connection_config || destination.config || {};
+
             $('#editDestinationId').val(destination.id);
             $('#editDestinationName').val(destination.name);
             $('#editDestinationType').val(destination.type);
-            $('#editDestinationConfig').val(JSON.stringify(destination.config || {}, null, 2));
+            $('#editDestinationConfig').val(JSON.stringify(config, null, 2));
             $('#editDestinationDescription').val(destination.description);
+
+            // Store config globally for Add Variable button
+            currentDestinationConfig = config;
+
+            // Clear variables list
+            $('#variablesList').empty();
+
+            // Check if there are variables from Postman collection
+            if (config.variables && Object.keys(config.variables).length > 0) {
+                Object.keys(config.variables).forEach(function(varName) {
+                    const varData = config.variables[varName];
+                    addVariableRow(varName, varData);
+                });
+
+                $('#variablesSection').show();
+
+                // Wire up Add Variable button
+                $('#addVariableBtn').off('click').on('click', function() {
+                    addVariableToList();
+                });
+
+                // Show service type badge
+                if (config.service_type) {
+                    $('#editDestinationName').after('<span class="badge bg-primary ms-2" id="serviceTypeBadge"><i class="fas fa-tag"></i> ' + config.service_type + '</span>');
+                }
+            } else {
+                $('#variablesSection').hide();
+                $('#serviceTypeBadge').remove();
+            }
+
+            // Show authentication info
+            if (config.auth && config.auth.type) {
+                $('#authTypeBadge').text(config.auth.type.toUpperCase());
+                let authHtml = '<p><strong>Type:</strong> ' + config.auth.type + '</p>';
+
+                if (config.auth.type === 'oauth1') {
+                    authHtml += '<p>OAuth 1.0a authentication with HMAC-SHA256 signature method.</p>';
+                    authHtml += '<p class="mb-0">Required credentials are listed in the Variables section above.</p>';
+                }
+
+                $('#authDetails').html(authHtml);
+                $('#authSection').show();
+            } else {
+                $('#authSection').hide();
+            }
+
+            // Show schema fields for mapping
+            const schemaInfo = destination.schema_info || {};
+            if (schemaInfo.fields && schemaInfo.fields.length > 0) {
+                let fieldsHtml = '<div class="table-responsive"><table class="table table-sm table-bordered"><thead><tr><th>Field Name</th><th>Type</th><th>Example</th></tr></thead><tbody>';
+
+                schemaInfo.fields.forEach(function(field) {
+                    const typeColor = field.type === 'string' ? 'info' : (field.type === 'integer' || field.type === 'number' ? 'success' : 'secondary');
+                    fieldsHtml += '<tr>';
+                    fieldsHtml += '<td><code>' + field.name + '</code></td>';
+                    fieldsHtml += '<td><span class="badge bg-' + typeColor + '">' + field.type + '</span></td>';
+                    fieldsHtml += '<td><small class="text-muted">' + (field.example || '-') + '</small></td>';
+                    fieldsHtml += '</tr>';
+                });
+
+                fieldsHtml += '</tbody></table></div>';
+                $('#schemaFieldsList').html(fieldsHtml);
+                $('#schemaSection').show();
+            } else {
+                $('#schemaSection').hide();
+            }
+
             $('#editDestinationModal').modal('show');
         } else {
             showAlert('Failed to load destination details', 'danger');
@@ -331,6 +693,44 @@ function deleteDestination(destinationId) {
             },
             error: function() {
                 showAlert('Failed to delete destination', 'danger');
+            }
+        });
+    }
+}
+
+function deleteToolDestinations(toolName) {
+    if (confirm('Are you sure you want to delete ALL destinations for ' + toolName + '? This will remove all endpoints and configurations.')) {
+        // Get all destinations for this tool
+        $.get('/api/destinations', function(data) {
+            if (data.success) {
+                const destinations = data.data;
+                const toolDestinations = destinations.filter(function(d) {
+                    const config = d.connection_config || d.config || {};
+                    return (config.service_type || d.name) === toolName;
+                });
+
+                let deleteCount = 0;
+                let totalToDelete = toolDestinations.length;
+
+                if (totalToDelete === 0) {
+                    showAlert('No destinations found for ' + toolName, 'warning');
+                    return;
+                }
+
+                // Delete each destination
+                toolDestinations.forEach(function(dest) {
+                    $.ajax({
+                        url: '/api/destinations/' + dest.id,
+                        method: 'DELETE',
+                        success: function() {
+                            deleteCount++;
+                            if (deleteCount === totalToDelete) {
+                                loadDestinations();
+                                showAlert('All ' + totalToDelete + ' destination(s) for ' + toolName + ' deleted successfully', 'success');
+                            }
+                        }
+                    });
+                });
             }
         });
     }

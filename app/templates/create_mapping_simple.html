@@ -64,6 +64,147 @@
     </div>
 </div>
 
+<!-- Field Mapping Section -->
+<div class="row mt-4" id="fieldMappingSection" style="display:none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exchange-alt"></i> Field Mapping
+                    </h5>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-light" id="aiMapFieldsBtn">
+                            <i class="fas fa-magic"></i> AI Auto-Map
+                        </button>
+                        <button type="button" class="btn btn-sm btn-success ms-2" id="addManualMappingBtn">
+                            <i class="fas fa-plus"></i> Add Mapping
+                        </button>
+                        <button type="button" class="btn btn-sm btn-warning ms-1" id="testMappingBtn">
+                            <i class="fas fa-bug"></i> Test
+                        </button>
+                        <button type="button" class="btn btn-sm btn-info ms-1" id="debugBtn">
+                            <i class="fas fa-search"></i> Debug
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-5">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-database"></i> Source Fields
+                            <span class="badge bg-info" id="sourceFieldCount">0</span>
+                        </h6>
+                        <div id="sourceFieldsList" class="border rounded p-3" style="max-height: 500px; overflow-y: auto;">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> Loading...
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-center justify-content-center">
+                        <div class="text-center">
+                            <i class="fas fa-arrows-alt-h fa-3x text-muted"></i>
+                            <p class="small text-muted mt-2">Drag to map</p>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-cloud-upload-alt"></i> Destination Fields
+                            <span class="badge bg-success" id="destFieldCount">0</span>
+                        </h6>
+                        <div id="destinationFieldsList" class="border rounded p-3" style="max-height: 500px; overflow-y: auto;">
+                            <div class="text-center text-muted">
+                                <i class="fas fa-spinner fa-spin"></i> Loading...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Suggestions Section -->
+                <div class="row mt-4" id="aiSuggestionsSection" style="display:none;">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-lightbulb"></i> AI Mapping Suggestions
+                                    <span class="badge bg-primary" id="suggestionCount">0</span>
+                                </h6>
+                                <button type="button" class="btn btn-sm btn-success" id="addSelectedSuggestionsBtn">
+                                    <i class="fas fa-plus"></i> Add Selected to Mappings
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="addAllSuggestionsBtn">
+                                    <i class="fas fa-download"></i> Add All
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered bg-white">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="5%">
+                                            <input type="checkbox" id="selectAllSuggestions" title="Select All">
+                                        </th>
+                                        <th width="30%">Source Field</th>
+                                        <th width="30%">Destination Field</th>
+                                        <th width="20%">Transformation</th>
+                                        <th width="15%">Confidence</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="aiSuggestionsBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mapping Rules Table -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-list"></i> Mapping Rules
+                            <span class="badge bg-warning text-dark" id="mappingCount">0</span>
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered" id="mappingRulesTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="35%">Source Field</th>
+                                        <th width="35%">Destination Field</th>
+                                        <th width="20%">Transformation</th>
+                                        <th width="10%">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mappingRulesBody">
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">
+                                            No mappings configured yet. Use AI Auto-Map or drag fields to create mappings.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save Mapping Button at Bottom -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ url_for('mappings') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="button" class="btn btn-success btn-lg" id="saveMappingBtnBottom">
+                                <i class="fas fa-save"></i> Save Mapping
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- AI-Powered Document Analysis -->
 <div class="row mt-4">
     <div class="col-12">
@@ -113,40 +254,6 @@
     </div>
 </div>
 
-<!-- Field Mappings -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Field Mappings</h5>
-                <button type="button" class="btn btn-sm btn-outline-primary" id="addFieldMappingBtn">
-                    <i class="fas fa-plus"></i> Add Field Mapping
-                </button>
-            </div>
-            <div class="card-body">
-                <div id="fieldMappings">
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-map fa-2x mb-3"></i>
-                        <p>No field mappings configured yet</p>
-                        <p class="small">Add field mappings manually or use AI suggestions</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Save Mapping -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="d-flex justify-content-end gap-2">
-            <a href="{{ url_for('mappings') }}" class="btn btn-secondary">Cancel</a>
-            <button type="button" class="btn btn-success" id="saveMappingBtn">
-                <i class="fas fa-save"></i> Save Mapping
-            </button>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -155,10 +262,122 @@ let fieldMappingCounter = 0;
 let currentSources = [];
 let currentDestinations = [];
 
+let sourceFields = [];
+let destinationFields = [];
+let fieldMappings = [];
+let aiSuggestions = [];
+
 $(document).ready(function() {
     loadSources();
     loadDestinations();
-    
+
+    // Watch for source/destination selection
+    $('#sourceSelect, #destinationSelect').change(function() {
+        const sourceId = $('#sourceSelect').val();
+        const destId = $('#destinationSelect').val();
+
+        if (sourceId && destId) {
+            loadFieldsAndShowMapping(sourceId, destId);
+        }
+    });
+
+    // AI Auto-Map button
+    $('#aiMapFieldsBtn').click(function() {
+        aiAutoMapFields();
+    });
+
+    // Add Selected Suggestions button
+    $('#addSelectedSuggestionsBtn').click(function() {
+        console.log('🔵 Add Selected Suggestions button clicked!');
+        addSelectedSuggestions();
+    });
+
+    // Alternative event handler (in case the first one doesn't work)
+    $(document).on('click', '#addSelectedSuggestionsBtn', function() {
+        console.log('🔵 Add Selected Suggestions button clicked (delegated event)!');
+        addSelectedSuggestions();
+    });
+
+    // Add All Suggestions button (simpler version)
+    $('#addAllSuggestionsBtn').click(function() {
+        console.log('🔵 Add All Suggestions button clicked!');
+        console.log('Adding ALL suggestions...');
+        if (aiSuggestions && aiSuggestions.length > 0) {
+            console.log('Found', aiSuggestions.length, 'suggestions to add');
+            let added = 0;
+            aiSuggestions.forEach(function(suggestion, index) {
+                console.log('Processing suggestion', index, ':', suggestion);
+                if (suggestion && suggestion.source_field && suggestion.destination_field) {
+                    const newMapping = {
+                        source: suggestion.source_field,
+                        destination: suggestion.destination_field,
+                        transformation: suggestion.transformation || 'direct'
+                    };
+                    console.log('Adding mapping:', newMapping);
+                    fieldMappings.push(newMapping);
+                    added++;
+                } else {
+                    console.log('Invalid suggestion at index', index);
+                }
+            });
+            console.log('fieldMappings after adding:', fieldMappings);
+            console.log('Calling renderMappingTable...');
+            renderMappingTable();
+            showAlert('Added all ' + added + ' suggestions to mapping rules!', 'success');
+        } else {
+            console.log('No AI suggestions available:', aiSuggestions);
+            showAlert('No AI suggestions available.', 'warning');
+        }
+    });
+
+    // Add Manual Mapping button
+    $('#addManualMappingBtn').click(function() {
+        showManualMappingDialog();
+    });
+
+    // Test mapping button (for debugging)
+    $(document).on('click', '#testMappingBtn', function() {
+        console.log('Test mapping button clicked');
+        addFieldMapping('test_source', 'test_destination', 'direct');
+        showAlert('Test mapping added!', 'success');
+    });
+
+    // Debug button
+    $(document).on('click', '#debugBtn', function() {
+        console.log('=== DEBUG INFO ===');
+        console.log('aiSuggestions:', aiSuggestions);
+        console.log('fieldMappings:', fieldMappings);
+        console.log('Checkboxes found:', $('.suggestion-checkbox').length);
+        console.log('Checked checkboxes:', $('.suggestion-checkbox:checked').length);
+        console.log('AI suggestions section visible:', $('#aiSuggestionsSection').is(':visible'));
+        console.log('Mapping rules body exists:', $('#mappingRulesBody').length > 0);
+        console.log('Add Selected Button exists:', $('#addSelectedSuggestionsBtn').length);
+        
+        $('.suggestion-checkbox').each(function(i, el) {
+            console.log('Checkbox', i, ':', {
+                index: $(el).data('index'),
+                checked: $(el).is(':checked'),
+                element: el
+            });
+        });
+        
+        // Force add suggestions test
+        console.log('🧪 FORCING addSelectedSuggestions()...');
+        addSelectedSuggestions();
+        
+        alert('Debug info logged to console');
+    });
+
+    // Select all suggestions checkbox
+    $('#selectAllSuggestions').click(function() {
+        $('.suggestion-checkbox').prop('checked', $(this).prop('checked'));
+    });
+
+    // Save Mapping button (bottom)
+    $('#saveMappingBtnBottom').click(function() {
+        saveMapping();
+    });
+
     // File upload handlers
     $('#apiDocFile').change(handleFileUpload);
     $('#postmanFile').change(handleFileUpload);
@@ -166,10 +385,6 @@ $(document).ready(function() {
     // AI analysis
     $('#analyzeDocsBtn').click(analyzeDocumentation);
     $('#suggestMappingsBtn').click(suggestMappings);
-    
-    // Field mapping management
-    $('#addFieldMappingBtn').click(addFieldMapping);
-    $('#saveMappingBtn').click(saveMapping);
 });
 
 function handleFileUpload(event) {
@@ -319,53 +534,496 @@ function suggestMappings() {
     });
 }
 
-function addFieldMapping(sourceField = '', destinationField = '', transformation = '') {
-    fieldMappingCounter++;
-    const mappingId = 'mapping_' + fieldMappingCounter;
-    
-    const mappingHtml = `
-        <div class="field-mapping mb-3 p-3 border rounded" id="${mappingId}">
-            <div class="row">
-                <div class="col-md-3">
-                    <label class="form-label">Source Field</label>
-                    <input type="text" class="form-control source-field" value="${sourceField}" placeholder="source.field.name">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Destination Field</label>
-                    <input type="text" class="form-control destination-field" value="${destinationField}" placeholder="destination.field.name">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Transformation</label>
-                    <input type="text" class="form-control transformation" value="${transformation}" placeholder="Optional transformation function">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">&nbsp;</label>
-                    <div>
-                        <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeFieldMapping('${mappingId}')">
-                            <i class="fas fa-trash"></i> Remove
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    $('#fieldMappings').append(mappingHtml);
+
+function loadFieldsAndShowMapping(sourceId, destId) {
+    $('#fieldMappingSection').slideDown();
+
+    // Load source schema
+    $.get('/api/sources/' + sourceId + '/schema', function(data) {
+        if (data.success) {
+            sourceFields = data.data.fields || [];
+            displaySourceFields();
+        }
+    }).fail(function() {
+        // If endpoint doesn't exist, try to get from source config
+        $.get('/api/sources/' + sourceId, function(data) {
+            if (data.success) {
+                const config = data.data.connection_config || data.data.config || {};
+                const schemaInfo = data.data.schema_info || {};
+                sourceFields = schemaInfo.fields || [];
+
+                // If no fields, generate from config
+                if (sourceFields.length === 0 && config.endpoints) {
+                    sourceFields = [{name: 'id', type: 'string'}, {name: 'data', type: 'object'}];
+                }
+
+                displaySourceFields();
+            }
+        });
+    });
+
+    // Load destination schema
+    $.get('/api/destinations/' + destId + '/schema', function(data) {
+        if (data.success) {
+            destinationFields = data.data.fields || [];
+            displayDestinationFields();
+        }
+    }).fail(function() {
+        // If endpoint doesn't exist, try to get from destination config
+        $.get('/api/destinations/' + destId, function(data) {
+            if (data.success) {
+                const schemaInfo = data.data.schema_info || {};
+                destinationFields = schemaInfo.fields || [];
+                displayDestinationFields();
+            }
+        });
+    });
 }
 
-function removeFieldMapping(mappingId) {
-    $('#' + mappingId).remove();
-    
-    // Show placeholder if no mappings left
-    if ($('.field-mapping').length === 0) {
-        $('#fieldMappings').html(`
-            <div class="text-center text-muted py-4">
-                <i class="fas fa-map fa-2x mb-3"></i>
-                <p>No field mappings configured yet</p>
-                <p class="small">Add field mappings manually or use AI suggestions</p>
-            </div>
-        `);
+function displaySourceFields() {
+    let html = '';
+    if (sourceFields.length === 0) {
+        html = '<div class="text-center text-muted"><i class="fas fa-exclamation-circle"></i> No fields found</div>';
+    } else {
+        sourceFields.forEach(function(field) {
+            const typeColor = field.type === 'string' ? 'info' : (field.type === 'integer' || field.type === 'number' ? 'success' : 'secondary');
+            html += '<div class="field-item mb-2 p-2 bg-light rounded cursor-pointer" data-field-name="' + field.name + '" data-field-type="' + field.type + '" draggable="true">';
+            html += '<div class="d-flex justify-content-between align-items-center">';
+            html += '<div><strong>' + field.name + '</strong></div>';
+            html += '<span class="badge bg-' + typeColor + '">' + field.type + '</span>';
+            html += '</div>';
+            if (field.example) {
+                html += '<small class="text-muted">e.g., ' + field.example + '</small>';
+            }
+            html += '</div>';
+        });
     }
+    $('#sourceFieldsList').html(html);
+    $('#sourceFieldCount').text(sourceFields.length);
+
+    // Enable drag for source fields
+    $('.field-item[draggable="true"]').on('dragstart', function(e) {
+        e.originalEvent.dataTransfer.setData('fieldName', $(this).data('field-name'));
+        e.originalEvent.dataTransfer.setData('fieldType', $(this).data('field-type'));
+    });
+}
+
+function displayDestinationFields() {
+    let html = '';
+    if (destinationFields.length === 0) {
+        html = '<div class="text-center text-muted"><i class="fas fa-exclamation-circle"></i> No fields found</div>';
+    } else {
+        destinationFields.forEach(function(field) {
+            const typeColor = field.type === 'string' ? 'info' : (field.type === 'integer' || field.type === 'number' ? 'success' : 'secondary');
+            html += '<div class="field-item mb-2 p-2 bg-light rounded drop-zone" data-field-name="' + field.name + '" data-field-type="' + field.type + '">';
+            html += '<div class="d-flex justify-content-between align-items-center">';
+            html += '<div><strong>' + field.name + '</strong></div>';
+            html += '<span class="badge bg-' + typeColor + '">' + field.type + '</span>';
+            html += '</div>';
+            if (field.example) {
+                html += '<small class="text-muted">e.g., ' + field.example + '</small>';
+            }
+            html += '</div>';
+        });
+    }
+    $('#destinationFieldsList').html(html);
+    $('#destFieldCount').text(destinationFields.length);
+
+    // Enable drop for destination fields
+    $('.drop-zone').on('dragover', function(e) {
+        e.preventDefault();
+        $(this).addClass('bg-warning');
+    }).on('dragleave', function(e) {
+        $(this).removeClass('bg-warning');
+    }).on('drop', function(e) {
+        e.preventDefault();
+        $(this).removeClass('bg-warning');
+
+        const sourceField = e.originalEvent.dataTransfer.getData('fieldName');
+        const destField = $(this).data('field-name');
+
+        addFieldMapping(sourceField, destField, 'direct');
+    });
+}
+
+function addFieldMapping(sourceField, destField, transformation) {
+    transformation = transformation || 'direct';
+    
+    console.log('addFieldMapping called with:', {
+        sourceField: sourceField,
+        destField: destField,
+        transformation: transformation
+    });
+
+    // Check if mapping already exists
+    const exists = fieldMappings.some(function(m) {
+        return m.source === sourceField && m.destination === destField;
+    });
+
+    if (exists) {
+        console.log('Mapping already exists, skipping:', sourceField, '→', destField);
+        return; // Don't add duplicate
+    }
+
+    console.log('Adding new mapping to fieldMappings array');
+    fieldMappings.push({
+        source: sourceField,
+        destination: destField,
+        transformation: transformation
+    });
+
+    console.log('fieldMappings after adding:', fieldMappings);
+    renderMappingTable();
+}
+
+function removeMapping(index) {
+    fieldMappings.splice(index, 1);
+    renderMappingTable();
+}
+
+function renderMappingTable() {
+    console.log('=== renderMappingTable START ===');
+    console.log('fieldMappings array:', fieldMappings);
+    console.log('fieldMappings length:', fieldMappings.length);
+    
+    // Check if the table element exists
+    const tableElement = $('#mappingRulesBody');
+    console.log('Table element found:', tableElement.length > 0);
+    
+    let html = '';
+
+    if (fieldMappings.length === 0) {
+        html = '<tr><td colspan="4" class="text-center text-muted p-3">No mappings configured yet. Use AI Auto-Map or drag fields to create mappings.</td></tr>';
+        console.log('No mappings found, showing empty message');
+    } else {
+        console.log('Rendering', fieldMappings.length, 'mappings');
+        fieldMappings.forEach(function(mapping, index) {
+            console.log('Rendering mapping', index, ':', mapping);
+            
+            // Validate mapping data
+            if (!mapping.source || !mapping.destination) {
+                console.log('ERROR: Invalid mapping data at index', index, mapping);
+                return;
+            }
+            
+            html += '<tr class="mapping-row" data-index="' + index + '">';
+            html += '<td><code class="bg-light p-1">' + escapeHtml(mapping.source) + '</code></td>';
+            html += '<td><code class="bg-light p-1">' + escapeHtml(mapping.destination) + '</code></td>';
+            html += '<td>';
+            html += '<select class="form-select form-select-sm mapping-transformation" data-index="' + index + '">';
+            html += '<option value="direct"' + (mapping.transformation === 'direct' ? ' selected' : '') + '>Direct Copy</option>';
+            html += '<option value="uppercase"' + (mapping.transformation === 'uppercase' ? ' selected' : '') + '>Uppercase</option>';
+            html += '<option value="lowercase"' + (mapping.transformation === 'lowercase' ? ' selected' : '') + '>Lowercase</option>';
+            html += '<option value="trim"' + (mapping.transformation === 'trim' ? ' selected' : '') + '>Trim Whitespace</option>';
+            html += '<option value="number"' + (mapping.transformation === 'number' ? ' selected' : '') + '>Convert to Number</option>';
+            html += '<option value="date"' + (mapping.transformation === 'date' ? ' selected' : '') + '>Format as Date</option>';
+            html += '</select>';
+            html += '</td>';
+            html += '<td>';
+            html += '<button class="btn btn-sm btn-outline-danger" onclick="removeMapping(' + index + ')" title="Remove mapping">';
+            html += '<i class="fas fa-trash"></i>';
+            html += '</button>';
+            html += '</td>';
+            html += '</tr>';
+        });
+    }
+
+    console.log('Generated HTML length:', html.length);
+    console.log('Setting HTML for mappingRulesBody');
+    
+    // Set the HTML
+    tableElement.html(html);
+    
+    // Update the count badge
+    $('#mappingCount').text(fieldMappings.length);
+    console.log('Updated mapping count badge to:', fieldMappings.length);
+    
+    // Re-bind event handlers for transformation dropdowns
+    $('.mapping-transformation').off('change').on('change', function() {
+        const index = $(this).data('index');
+        const newTransformation = $(this).val();
+        console.log('Transformation changed for mapping', index, 'to:', newTransformation);
+        
+        if (fieldMappings[index]) {
+            fieldMappings[index].transformation = newTransformation;
+            console.log('Updated mapping:', fieldMappings[index]);
+        }
+    });
+    
+    console.log('=== renderMappingTable END ===');
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function aiAutoMapFields() {
+    if (sourceFields.length === 0 || destinationFields.length === 0) {
+        alert('Please ensure both source and destination have fields loaded.\nSource fields: ' + sourceFields.length + '\nDestination fields: ' + destinationFields.length);
+        return;
+    }
+
+    console.log('Starting AI Auto-Map with:', {
+        sourceFields: sourceFields,
+        destinationFields: destinationFields
+    });
+
+    $('#aiMapFieldsBtn').html('<i class="fas fa-spinner fa-spin"></i> Mapping...').prop('disabled', true);
+
+    $.ajax({
+        url: '/api/ai/suggest-mappings',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            source_schema: sourceFields,
+            destination_schema: destinationFields
+        }),
+        success: function(data) {
+            console.log('AI response:', data);
+            
+            if (data.success && data.suggestions) {
+                // Parse AI response
+                try {
+                    let suggestions = data.suggestions;
+
+                    // Try to extract JSON from markdown code blocks
+                    if (typeof suggestions === 'string' || suggestions.raw_content) {
+                        const content = suggestions.raw_content || suggestions;
+                        const jsonMatch = content.match(/\{[\s\S]*"mappings"[\s\S]*\}/);
+
+                        if (jsonMatch) {
+                            suggestions = JSON.parse(jsonMatch[0]);
+                        }
+                    }
+
+                    if (suggestions.mappings && Array.isArray(suggestions.mappings)) {
+                        // Store suggestions and display them with checkboxes
+                        aiSuggestions = suggestions.mappings.map(function(mapping) {
+                            return {
+                                source_field: mapping.source_field,
+                                destination_field: mapping.destination_field,
+                                transformation: mapping.transformation || 'direct',
+                                confidence: mapping.confidence || 'high'
+                            };
+                        });
+
+                        console.log('Parsed AI suggestions:', aiSuggestions);
+                        displayAISuggestions();
+                        showAlert('AI suggested ' + aiSuggestions.length + ' field mappings. Review and select which ones to add.', 'success');
+                    } else {
+                        console.log('Unexpected suggestions format:', suggestions);
+                        showAlert('AI provided suggestions but in an unexpected format. You can still create mappings manually.', 'warning');
+                        // Show manual mapping options
+                        showManualMappingOptions();
+                    }
+                } catch (e) {
+                    console.error('Error parsing AI suggestions:', e);
+                    showAlert('Could not parse AI suggestions. You can create mappings manually.', 'warning');
+                    showManualMappingOptions();
+                }
+            } else {
+                console.log('AI mapping failed:', data);
+                showAlert('AI mapping failed: ' + (data.error || 'Unknown error') + '. You can create mappings manually.', 'warning');
+                showManualMappingOptions();
+            }
+
+            $('#aiMapFieldsBtn').html('<i class="fas fa-magic"></i> AI Auto-Map').prop('disabled', false);
+        },
+        error: function(xhr, status, error) {
+            console.error('AJAX error:', {xhr: xhr, status: status, error: error});
+            showAlert('Failed to get AI suggestions. You can create mappings manually by dragging fields.', 'warning');
+            showManualMappingOptions();
+            $('#aiMapFieldsBtn').html('<i class="fas fa-magic"></i> AI Auto-Map').prop('disabled', false);
+        }
+    });
+}
+
+function displayAISuggestions() {
+    if (aiSuggestions.length === 0) {
+        $('#aiSuggestionsSection').hide();
+        return;
+    }
+
+    let html = '';
+    aiSuggestions.forEach(function(suggestion, index) {
+        const confidenceBadge = suggestion.confidence === 'high' ? 'bg-success' :
+                                (suggestion.confidence === 'medium' ? 'bg-warning' : 'bg-secondary');
+
+        html += '<tr>';
+        html += '<td class="text-center">';
+        html += '<input type="checkbox" class="suggestion-checkbox" data-index="' + index + '" checked>';
+        html += '</td>';
+        html += '<td><code>' + suggestion.source_field + '</code></td>';
+        html += '<td><code>' + suggestion.destination_field + '</code></td>';
+        html += '<td>' + suggestion.transformation + '</td>';
+        html += '<td><span class="badge ' + confidenceBadge + '">' + suggestion.confidence + '</span></td>';
+        html += '</tr>';
+    });
+
+    $('#aiSuggestionsBody').html(html);
+    $('#suggestionCount').text(aiSuggestions.length);
+    $('#aiSuggestionsSection').slideDown();
+}
+
+function showManualMappingOptions() {
+    // Show empty suggestions section with manual instructions
+    aiSuggestions = [];
+    let html = '<tr><td colspan="5" class="text-center text-muted p-4">';
+    html += '<i class="fas fa-hand-pointer fa-2x mb-2 d-block"></i>';
+    html += '<strong>Manual Mapping</strong><br>';
+    html += 'Drag fields from the left (Source) to the right (Destination) to create mappings.<br>';
+    html += 'Or try the AI Auto-Map button again.';
+    html += '</td></tr>';
+    
+    $('#aiSuggestionsBody').html(html);
+    $('#suggestionCount').text('0');
+    $('#aiSuggestionsSection').slideDown();
+}
+
+function showAlert(message, type) {
+    type = type || 'info';
+    const alertClass = 'alert-' + type;
+    
+    const alertHtml = '<div class="alert ' + alertClass + ' alert-dismissible fade show" role="alert">' +
+        message +
+        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+        '</div>';
+    
+    // Remove existing alerts
+    $('.alert').remove();
+    
+    // Add new alert at the top of the mapping section
+    $('#fieldMappingSection').prepend(alertHtml);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(function() {
+        $('.alert').fadeOut();
+    }, 5000);
+}
+
+function showManualMappingDialog() {
+    if (sourceFields.length === 0 || destinationFields.length === 0) {
+        showAlert('Please ensure both source and destination have fields loaded first.', 'warning');
+        return;
+    }
+
+    // Create simple prompt-based mapping
+    let sourceOptions = sourceFields.map(f => f.name).join('\n');
+    let destOptions = destinationFields.map(f => f.name).join('\n');
+    
+    let sourceField = prompt(
+        'Enter source field name:\n\nAvailable fields:\n' + sourceOptions
+    );
+    
+    if (!sourceField) return;
+    
+    let destField = prompt(
+        'Enter destination field name:\n\nAvailable fields:\n' + destOptions
+    );
+    
+    if (!destField) return;
+    
+    // Validate fields exist
+    const sourceExists = sourceFields.some(f => f.name === sourceField);
+    const destExists = destinationFields.some(f => f.name === destField);
+    
+    if (!sourceExists) {
+        showAlert('Source field "' + sourceField + '" not found.', 'danger');
+        return;
+    }
+    
+    if (!destExists) {
+        showAlert('Destination field "' + destField + '" not found.', 'danger');
+        return;
+    }
+    
+    // Add the mapping
+    addFieldMapping(sourceField, destField, 'direct');
+    showAlert('Mapping added: ' + sourceField + ' → ' + destField, 'success');
+}
+
+function addSelectedSuggestions() {
+    console.log('=== addSelectedSuggestions START ===');
+    console.log('AI suggestions available:', aiSuggestions);
+    console.log('fieldMappings before adding:', fieldMappings);
+    
+    // Check if AI suggestions section is visible
+    if (!$('#aiSuggestionsSection').is(':visible')) {
+        console.log('ERROR: AI suggestions section is not visible');
+        showAlert('AI suggestions section is not visible. Please try AI Auto-Map first.', 'warning');
+        return;
+    }
+    
+    let addedCount = 0;
+    const checkedBoxes = $('.suggestion-checkbox:checked');
+    console.log('Found checked boxes:', checkedBoxes.length);
+    
+    if (checkedBoxes.length === 0) {
+        console.log('ERROR: No checkboxes are checked');
+        showAlert('Please select at least one suggestion by checking the checkboxes.', 'warning');
+        return;
+    }
+
+    checkedBoxes.each(function(i, checkbox) {
+        const $checkbox = $(checkbox);
+        const index = $checkbox.data('index');
+        console.log('Processing checkbox', i, 'with index:', index);
+        
+        if (index === undefined || index === null) {
+            console.log('ERROR: Checkbox has no index data');
+            return;
+        }
+        
+        const suggestion = aiSuggestions[index];
+        console.log('Suggestion at index', index, ':', suggestion);
+
+        if (suggestion && suggestion.source_field && suggestion.destination_field) {
+            console.log('Adding mapping:', suggestion.source_field, '→', suggestion.destination_field);
+            
+            // Add the mapping
+            const newMapping = {
+                source: suggestion.source_field,
+                destination: suggestion.destination_field,
+                transformation: suggestion.transformation || 'direct'
+            };
+            
+            // Check for duplicates manually
+            const exists = fieldMappings.some(function(m) {
+                return m.source === newMapping.source && m.destination === newMapping.destination;
+            });
+            
+            if (!exists) {
+                fieldMappings.push(newMapping);
+                addedCount++;
+                console.log('Mapping added successfully');
+            } else {
+                console.log('Mapping already exists, skipped');
+            }
+        } else {
+            console.log('ERROR: Invalid suggestion data at index:', index);
+        }
+    });
+
+    console.log('Total mappings added:', addedCount);
+    console.log('fieldMappings after adding:', fieldMappings);
+
+    // Force re-render the mapping table
+    renderMappingTable();
+
+    if (addedCount > 0) {
+        showAlert('✅ Successfully added ' + addedCount + ' field mapping(s) to the mapping rules!', 'success');
+        
+        // Clear suggestions after adding (optional)
+        // aiSuggestions = [];
+        // $('#aiSuggestionsSection').slideUp();
+    } else {
+        showAlert('❌ No mappings were added. Please check your selections.', 'warning');
+    }
+    
+    console.log('=== addSelectedSuggestions END ===');
 }
 
 function saveMapping() {
@@ -376,36 +1034,32 @@ function saveMapping() {
         destination_id: $('#destinationSelect').val(),
         field_mappings: []
     };
-    
+
     // Validate required fields
     if (!mappingData.name || !mappingData.source_id || !mappingData.destination_id) {
         alert('Please fill in all required fields');
         return;
     }
-    
-    // Collect field mappings
-    $('.field-mapping').each(function() {
-        const sourceField = $(this).find('.source-field').val();
-        const destinationField = $(this).find('.destination-field').val();
-        const transformation = $(this).find('.transformation').val();
-        
-        if (sourceField && destinationField) {
-            mappingData.field_mappings.push({
-                source_field: sourceField,
-                destination_field: destinationField,
-                transformation: transformation || null
-            });
-        }
-    });
-    
+
+    // Use the fieldMappings array
+    if (fieldMappings && fieldMappings.length > 0) {
+        mappingData.field_mappings = fieldMappings.map(function(m) {
+            return {
+                source_field: m.source,
+                destination_field: m.destination,
+                transformation: m.transformation || 'direct'
+            };
+        });
+    }
+
     if (mappingData.field_mappings.length === 0) {
-        alert('Please add at least one field mapping');
+        alert('Please add at least one field mapping. Use AI Auto-Map or drag fields to create mappings.');
         return;
     }
-    
-    const btn = $('#saveMappingBtn');
+
+    const btn = $('#saveMappingBtnBottom');
     btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
-    
+
     $.ajax({
         url: '/api/mappings',
         method: 'POST',

@@ -109,6 +109,16 @@
                         <label for="editSourceDescription" class="form-label">Description</label>
                         <textarea class="form-control" id="editSourceDescription" rows="3"></textarea>
                     </div>
+
+                    <!-- Variables Section -->
+                    <div id="sourceVariablesSection" style="display:none;">
+                        <hr>
+                        <h6><i class="fas fa-dollar-sign"></i> Variables <span class="badge bg-info">Postman Collection</span></h6>
+                        <div id="sourceVariablesList" class="mb-3">
+                            <!-- Variables will be loaded here -->
+                        </div>
+                        <small class="text-muted">These variables were extracted from your Postman collection. Set values for URL placeholders like {{account_id}}.</small>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -170,15 +180,29 @@ $(document).ready(function() {
             type: $('#editSourceType').val(),
             description: $('#editSourceDescription').val()
         };
-        
+
         // Parse configuration JSON
         try {
-            sourceData.config = $('#editSourceConfig').val() ? JSON.parse($('#editSourceConfig').val()) : {};
+            sourceData.connection_config = $('#editSourceConfig').val() ? JSON.parse($('#editSourceConfig').val()) : {};
         } catch (e) {
             alert('Invalid JSON configuration');
             return;
         }
-        
+
+        // Collect variable values from inputs
+        $('.source-variable-input').each(function() {
+            const varName = $(this).data('var-name');
+            const varValue = $(this).val();
+
+            if (!sourceData.connection_config.variables) {
+                sourceData.connection_config.variables = {};
+            }
+
+            if (sourceData.connection_config.variables[varName]) {
+                sourceData.connection_config.variables[varName].value = varValue;
+            }
+        });
+
         $.ajax({
             url: '/api/sources/' + sourceId,
             method: 'PUT',
@@ -291,11 +315,46 @@ function editSource(sourceId) {
     $.get('/api/sources/' + sourceId, function(data) {
         if (data.success) {
             const source = data.data;
+            const config = source.connection_config || source.config || {};
+
             $('#editSourceId').val(source.id);
             $('#editSourceName').val(source.name);
             $('#editSourceType').val(source.type);
-            $('#editSourceConfig').val(JSON.stringify(source.config || {}, null, 2));
+            $('#editSourceConfig').val(JSON.stringify(config, null, 2));
             $('#editSourceDescription').val(source.description);
+
+            // Check if there are variables from Postman collection
+            if (config.variables && Object.keys(config.variables).length > 0) {
+                let variablesHtml = '';
+                Object.keys(config.variables).forEach(function(varName) {
+                    const varData = config.variables[varName];
+                    const currentValue = varData.value || '';
+                    const varType = varData.type || 'unknown';
+                    const isRequired = varData.required ? '<span class="badge bg-danger">Required</span>' : '';
+                    const typeIcon = varType === 'auth' ? 'fa-key' : (varType === 'url' ? 'fa-link' : 'fa-code');
+
+                    variablesHtml += '<div class="mb-2">';
+                    variablesHtml += '<label class="form-label">';
+                    variablesHtml += '<i class="fas ' + typeIcon + '"></i> ';
+                    variablesHtml += '<code>&#123;&#123;' + varName + '&#125;&#125;</code> ' + isRequired;
+                    variablesHtml += '</label>';
+                    variablesHtml += '<input type="text" class="form-control source-variable-input" data-var-name="' + varName + '" value="' + currentValue + '" placeholder="Enter value for ' + varName + '">';
+                    variablesHtml += '<small class="text-muted">' + (varData.description || '') + '</small>';
+                    variablesHtml += '</div>';
+                });
+
+                $('#sourceVariablesList').html(variablesHtml);
+                $('#sourceVariablesSection').show();
+
+                // Show service type badge
+                if (config.service_type) {
+                    $('#editSourceName').after('<span class="badge bg-primary ms-2" id="sourceServiceTypeBadge"><i class="fas fa-tag"></i> ' + config.service_type + '</span>');
+                }
+            } else {
+                $('#sourceVariablesSection').hide();
+                $('#sourceServiceTypeBadge').remove();
+            }
+
             $('#editSourceModal').modal('show');
         } else {
             showAlert('Failed to load source details', 'danger');
