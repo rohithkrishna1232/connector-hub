@@ -1,0 +1,695 @@
+{% extends "base.html" %}
+
+{% block title %}Create Mapping - Data Integration Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-map"></i> Create Field Mapping
+            </h1>
+            <a href="{{ url_for('main.mappings') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Mappings
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Mapping Creation Form -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Mapping Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form id="mappingForm">
+                    <!-- Basic Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <label for="mappingName" class="form-label">Mapping Name *</label>
+                            <input type="text" class="form-control" id="mappingName" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="sourceSelect" class="form-label">Source *</label>
+                            <select class="form-select" id="sourceSelect" required>
+                                <option value="">Select source...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="destinationSelect" class="form-label">Destination *</label>
+                            <select class="form-select" id="destinationSelect" required>
+                                <option value="">Select destination...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- AI-Powered Mapping Suggestion -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6><i class="fas fa-brain"></i> AI-Powered Mapping Suggestions</h6>
+                                    <p class="text-muted mb-3">Use Gemini AI to automatically suggest field mappings based on your source and destination schemas.</p>
+                                    <button type="button" class="btn btn-primary" id="aiSuggestBtn">
+                                        <i class="fas fa-magic"></i> Generate AI Suggestions
+                                    </button>
+                                    <div id="aiSuggestions" class="mt-3" style="display: none;">
+                                        <!-- AI suggestions will be displayed here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Field Mapping Builder -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h6>Field Mappings</h6>
+                            <div id="mappingBuilder" class="mapping-builder">
+                                <div class="row mb-3">
+                                    <div class="col-5 text-center">
+                                        <strong>Source Fields</strong>
+                                    </div>
+                                    <div class="col-2 text-center">
+                                        <strong>Mapping</strong>
+                                    </div>
+                                    <div class="col-5 text-center">
+                                        <strong>Destination Fields</strong>
+                                    </div>
+                                </div>
+                                <div id="fieldMappings">
+                                    <!-- Field mappings will be dynamically added here -->
+                                </div>
+                                <button type="button" class="btn btn-outline-primary" id="addMappingBtn">
+                                    <i class="fas fa-plus"></i> Add Field Mapping
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data Transformations -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h6>Data Transformations</h6>
+                            <div id="transformationRules">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    Select fields above to configure transformations
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview and Validation -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-eye"></i> Mapping Preview
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <button type="button" class="btn btn-info" id="previewBtn">
+                                        <i class="fas fa-search"></i> Preview Transformation
+                                    </button>
+                                    <button type="button" class="btn btn-warning" id="validateBtn">
+                                        <i class="fas fa-check-circle"></i> Validate with AI
+                                    </button>
+                                    <div id="previewResults" class="mt-3" style="display: none;">
+                                        <!-- Preview results will be shown here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="row mt-4">
+                        <div class="col-12 text-end">
+                            <button type="button" class="btn btn-secondary me-2" id="saveDraftBtn">
+                                <i class="fas fa-save"></i> Save as Draft
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check"></i> Create Mapping
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Documents Integration Modal -->
+<div class="modal fade" id="apiDocsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">API Documentation & Postman Collection</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Upload API Documentation</h6>
+                        <div class="mb-3">
+                            <input type="file" class="form-control" id="apiDocsFile" accept=".json,.yaml,.yml,.md,.txt">
+                        </div>
+                        <button type="button" class="btn btn-primary" id="analyzeDocsBtn">
+                            <i class="fas fa-robot"></i> Analyze with Gemini AI
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Upload Postman Collection</h6>
+                        <div class="mb-3">
+                            <input type="file" class="form-control" id="postmanFile" accept=".json">
+                        </div>
+                        <button type="button" class="btn btn-primary" id="analyzePostmanBtn">
+                            <i class="fas fa-robot"></i> Extract API Endpoints
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div id="analysisResults">
+                            <!-- Analysis results will be shown here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="applyAnalysisBtn">Apply to Mapping</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Gemini AI API Configuration
+const GEMINI_API_KEY = 'AIzaSyAm1BC94o7Cym57yhz1nTp45-3wVYIM21w';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+
+let sourceFields = [];
+let destinationFields = [];
+let currentMapping = {};
+
+$(document).ready(function() {
+    loadSources();
+    loadDestinations();
+    
+    // Event handlers
+    $('#sourceSelect').change(function() {
+        loadSourceSchema($(this).val());
+    });
+    
+    $('#destinationSelect').change(function() {
+        loadDestinationSchema($(this).val());
+    });
+    
+    $('#addMappingBtn').click(function() {
+        addFieldMapping();
+    });
+    
+    $('#aiSuggestBtn').click(function() {
+        generateAISuggestions();
+    });
+    
+    $('#previewBtn').click(function() {
+        previewMapping();
+    });
+    
+    $('#validateBtn').click(function() {
+        validateWithAI();
+    });
+    
+    $('#mappingForm').submit(function(e) {
+        e.preventDefault();
+        saveMapping();
+    });
+    
+    // API Documentation handlers
+    $('#analyzeDocsBtn').click(function() {
+        analyzeAPIDocumentation();
+    });
+    
+    $('#analyzePostmanBtn').click(function() {
+        analyzePostmanCollection();
+    });
+});
+
+function loadSources() {
+    API.get('/api/sources', function(data) {
+        if (data.success) {
+            const select = $('#sourceSelect');
+            select.empty().append('<option value="">Select source...</option>');
+            data.data.forEach(function(source) {
+                select.append(`<option value="${source.id}">${source.name} (${source.type})</option>`);
+            });
+        }
+    });
+}
+
+function loadDestinations() {
+    API.get('/api/destinations', function(data) {
+        if (data.success) {
+            const select = $('#destinationSelect');
+            select.empty().append('<option value="">Select destination...</option>');
+            data.data.forEach(function(dest) {
+                select.append(`<option value="${dest.id}">${dest.name} (${dest.type})</option>`);
+            });
+        }
+    });
+}
+
+function loadSourceSchema(sourceId) {
+    if (!sourceId) return;
+    
+    API.get(`/api/sources/${sourceId}/schema`, function(data) {
+        if (data.success && data.data.fields) {
+            sourceFields = data.data.fields;
+            updateMappingBuilder();
+        }
+    });
+}
+
+function loadDestinationSchema(destId) {
+    if (!destId) return;
+    
+    API.get(`/api/destinations/${destId}/schema`, function(data) {
+        if (data.success && data.data.fields) {
+            destinationFields = data.data.fields;
+            updateMappingBuilder();
+        }
+    });
+}
+
+function updateMappingBuilder() {
+    if (sourceFields.length === 0 || destinationFields.length === 0) {
+        return;
+    }
+    
+    // Clear existing mappings
+    $('#fieldMappings').empty();
+    
+    // Auto-suggest mappings based on field names
+    autoSuggestMappings();
+}
+
+function autoSuggestMappings() {
+    const mappings = [];
+    
+    sourceFields.forEach(function(sourceField) {
+        const sourceName = sourceField.name.toLowerCase();
+        
+        // Find exact matches first
+        let destField = destinationFields.find(df => df.name.toLowerCase() === sourceName);
+        
+        // If no exact match, find similar names
+        if (!destField) {
+            destField = destinationFields.find(df => {
+                const destName = df.name.toLowerCase();
+                return destName.includes(sourceName) || sourceName.includes(destName);
+            });
+        }
+        
+        if (destField) {
+            mappings.push({
+                source: sourceField,
+                destination: destField
+            });
+        }
+    });
+    
+    // Display suggested mappings
+    mappings.forEach(function(mapping) {
+        addFieldMapping(mapping.source, mapping.destination);
+    });
+}
+
+function addFieldMapping(sourceField = null, destField = null) {
+    const mappingId = 'mapping-' + Date.now();
+    
+    const sourceOptions = sourceFields.map(f => 
+        `<option value="${f.name}" ${sourceField && f.name === sourceField.name ? 'selected' : ''}>${f.name} (${f.type})</option>`
+    ).join('');
+    
+    const destOptions = destinationFields.map(f => 
+        `<option value="${f.name}" ${destField && f.name === destField.name ? 'selected' : ''}>${f.name} (${f.type})</option>`
+    ).join('');
+    
+    const mappingHtml = `
+        <div class="field-mapping" id="${mappingId}">
+            <div class="source-field">
+                <select class="form-select source-select" name="source_field">
+                    <option value="">Select source field...</option>
+                    ${sourceOptions}
+                </select>
+            </div>
+            <div class="arrow">
+                <i class="fas fa-arrow-right"></i>
+            </div>
+            <div class="dest-field">
+                <select class="form-select dest-select" name="dest_field">
+                    <option value="">Select destination field...</option>
+                    ${destOptions}
+                </select>
+            </div>
+            <div class="mapping-actions">
+                <button type="button" class="btn btn-sm btn-outline-info" onclick="addTransformation('${mappingId}')">
+                    <i class="fas fa-magic"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMapping('${mappingId}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    $('#fieldMappings').append(mappingHtml);
+}
+
+function removeMapping(mappingId) {
+    $('#' + mappingId).remove();
+}
+
+function addTransformation(mappingId) {
+    // Show transformation options for this field mapping
+    const sourceField = $(`#${mappingId} .source-select`).val();
+    const destField = $(`#${mappingId} .dest-select`).val();
+    
+    if (!sourceField || !destField) {
+        showAlert('Please select both source and destination fields first', 'warning');
+        return;
+    }
+    
+    // Show transformation configuration modal or inline editor
+    showTransformationEditor(mappingId, sourceField, destField);
+}
+
+function generateAISuggestions() {
+    if (sourceFields.length === 0 || destinationFields.length === 0) {
+        showAlert('Please select both source and destination first', 'warning');
+        return;
+    }
+    
+    showLoading('#aiSuggestBtn');
+    
+    const prompt = `
+        Analyze these source and destination schemas and suggest optimal field mappings and transformations:
+        
+        Source Schema:
+        ${JSON.stringify(sourceFields, null, 2)}
+        
+        Destination Schema:
+        ${JSON.stringify(destinationFields, null, 2)}
+        
+        Please provide:
+        1. Field mapping suggestions
+        2. Required data transformations
+        3. Data validation rules
+        4. Potential issues or conflicts
+        
+        Response should be in JSON format with mappings, transformations, and recommendations.
+    `;
+    
+    callGeminiAPI(prompt).then(function(response) {
+        displayAISuggestions(response);
+        hideLoading('#aiSuggestBtn');
+    }).catch(function(error) {
+        hideLoading('#aiSuggestBtn');
+        showAlert('Failed to generate AI suggestions: ' + error, 'danger');
+    });
+}
+
+function callGeminiAPI(prompt) {
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: GEMINI_API_URL + '?key=' + GEMINI_API_KEY,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
+            }),
+            success: function(data) {
+                if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+                    resolve(data.candidates[0].content.parts[0].text);
+                } else {
+                    reject('Invalid response from Gemini API');
+                }
+            },
+            error: function(xhr, status, error) {
+                reject(error);
+            }
+        });
+    });
+}
+
+function displayAISuggestions(response) {
+    try {
+        // Try to parse JSON response
+        const suggestions = JSON.parse(response);
+        
+        let html = '<div class="ai-suggestions">';
+        html += '<h6><i class="fas fa-lightbulb"></i> AI Suggestions</h6>';
+        
+        if (suggestions.mappings) {
+            html += '<div class="mb-3"><strong>Recommended Mappings:</strong><ul>';
+            suggestions.mappings.forEach(function(mapping) {
+                html += `<li>${mapping.source} → ${mapping.destination}</li>`;
+            });
+            html += '</ul></div>';
+        }
+        
+        if (suggestions.transformations) {
+            html += '<div class="mb-3"><strong>Suggested Transformations:</strong><ul>';
+            suggestions.transformations.forEach(function(transform) {
+                html += `<li>${transform.field}: ${transform.rule}</li>`;
+            });
+            html += '</ul></div>';
+        }
+        
+        if (suggestions.recommendations) {
+            html += '<div class="mb-3"><strong>Recommendations:</strong>';
+            html += `<p>${suggestions.recommendations}</p></div>`;
+        }
+        
+        html += '<button type="button" class="btn btn-success btn-sm" onclick="applyAISuggestions()">Apply Suggestions</button>';
+        html += '</div>';
+        
+        $('#aiSuggestions').html(html).show();
+        
+    } catch (e) {
+        // If not valid JSON, display as text
+        $('#aiSuggestions').html(`
+            <div class="ai-suggestions">
+                <h6><i class="fas fa-lightbulb"></i> AI Analysis</h6>
+                <pre class="bg-light p-3 rounded">${response}</pre>
+            </div>
+        `).show();
+    }
+}
+
+function validateWithAI() {
+    const mappingConfig = buildMappingConfig();
+    
+    if (Object.keys(mappingConfig).length === 0) {
+        showAlert('Please create some field mappings first', 'warning');
+        return;
+    }
+    
+    showLoading('#validateBtn');
+    
+    const prompt = `
+        Validate this data integration mapping configuration:
+        
+        Mapping Configuration:
+        ${JSON.stringify(mappingConfig, null, 2)}
+        
+        Source Schema:
+        ${JSON.stringify(sourceFields, null, 2)}
+        
+        Destination Schema:
+        ${JSON.stringify(destinationFields, null, 2)}
+        
+        Please check for:
+        1. Data type compatibility
+        2. Required field coverage
+        3. Potential data loss
+        4. Performance considerations
+        5. Best practices compliance
+        
+        Provide specific recommendations and validation results.
+    `;
+    
+    callGeminiAPI(prompt).then(function(response) {
+        showValidationResults(response);
+        hideLoading('#validateBtn');
+    }).catch(function(error) {
+        hideLoading('#validateBtn');
+        showAlert('Validation failed: ' + error, 'danger');
+    });
+}
+
+function showValidationResults(results) {
+    $('#previewResults').html(`
+        <div class="validation-results">
+            <h6><i class="fas fa-check-circle"></i> AI Validation Results</h6>
+            <pre class="bg-light p-3 rounded">${results}</pre>
+        </div>
+    `).show();
+}
+
+function analyzeAPIDocumentation() {
+    const fileInput = document.getElementById('apiDocsFile');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        showAlert('Please select an API documentation file', 'warning');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const content = e.target.result;
+        
+        const prompt = `
+            Analyze this API documentation and extract:
+            1. Available endpoints
+            2. Request/response schemas
+            3. Authentication methods
+            4. Data formats
+            
+            API Documentation:
+            ${content}
+            
+            Please provide structured information that can be used for data integration mapping.
+        `;
+        
+        showLoading('#analyzeDocsBtn');
+        
+        callGeminiAPI(prompt).then(function(response) {
+            displayAnalysisResults('API Documentation', response);
+            hideLoading('#analyzeDocsBtn');
+        }).catch(function(error) {
+            hideLoading('#analyzeDocsBtn');
+            showAlert('Analysis failed: ' + error, 'danger');
+        });
+    };
+    
+    reader.readAsText(file);
+}
+
+function analyzePostmanCollection() {
+    const fileInput = document.getElementById('postmanFile');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        showAlert('Please select a Postman collection file', 'warning');
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        try {
+            const collection = JSON.parse(e.target.result);
+            
+            const prompt = `
+                Analyze this Postman collection and extract useful information for data integration:
+                
+                ${JSON.stringify(collection, null, 2)}
+                
+                Extract:
+                1. API endpoints and methods
+                2. Request/response formats
+                3. Authentication details
+                4. Data schema information
+                5. Example requests and responses
+                
+                Format the response to help with API integration setup.
+            `;
+            
+            showLoading('#analyzePostmanBtn');
+            
+            callGeminiAPI(prompt).then(function(response) {
+                displayAnalysisResults('Postman Collection', response);
+                hideLoading('#analyzePostmanBtn');
+            }).catch(function(error) {
+                hideLoading('#analyzePostmanBtn');
+                showAlert('Analysis failed: ' + error, 'danger');
+            });
+            
+        } catch (error) {
+            showAlert('Invalid Postman collection file', 'danger');
+        }
+    };
+    
+    reader.readAsText(file);
+}
+
+function displayAnalysisResults(title, results) {
+    $('#analysisResults').html(`
+        <div class="analysis-results">
+            <h6><i class="fas fa-robot"></i> ${title} Analysis</h6>
+            <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;">${results}</pre>
+        </div>
+    `);
+}
+
+function buildMappingConfig() {
+    const config = {};
+    
+    $('#fieldMappings .field-mapping').each(function() {
+        const sourceField = $(this).find('.source-select').val();
+        const destField = $(this).find('.dest-select').val();
+        
+        if (sourceField && destField) {
+            config[destField] = sourceField;
+        }
+    });
+    
+    return config;
+}
+
+function saveMapping() {
+    const mappingData = {
+        name: $('#mappingName').val(),
+        source_id: parseInt($('#sourceSelect').val()),
+        destination_id: parseInt($('#destinationSelect').val()),
+        mapping_config: buildMappingConfig(),
+        transformation_rules: {}
+    };
+    
+    if (!mappingData.name || !mappingData.source_id || !mappingData.destination_id) {
+        showAlert('Please fill in all required fields', 'warning');
+        return;
+    }
+    
+    API.post('/api/mappings', mappingData, function(data) {
+        if (data.success) {
+            showAlert('Mapping created successfully!', 'success');
+            setTimeout(function() {
+                window.location.href = '/mappings';
+            }, 2000);
+        }
+    });
+}
+
+// Show API docs modal button
+$('<button>')
+    .addClass('btn btn-info me-2')
+    .html('<i class="fas fa-file-alt"></i> API Docs')
+    .attr('data-bs-toggle', 'modal')
+    .attr('data-bs-target', '#apiDocsModal')
+    .insertBefore('#saveDraftBtn');
+</script>
+{% endblock %}

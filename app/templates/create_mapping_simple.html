@@ -1,0 +1,448 @@
+{% extends "base_simple.html" %}
+
+{% block title %}Create Mapping - Data Integration Platform{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-map"></i> Create Data Mapping
+            </h1>
+            <a href="{{ url_for('mappings') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Mappings
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Mapping Form -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Mapping Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form id="mappingForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="mappingName" class="form-label">Mapping Name</label>
+                                <input type="text" class="form-control" id="mappingName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="mappingDescription" class="form-label">Description</label>
+                                <input type="text" class="form-control" id="mappingDescription">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="sourceSelect" class="form-label">Source</label>
+                                <select class="form-select" id="sourceSelect" required>
+                                    <option value="">Select Source</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="destinationSelect" class="form-label">Destination</label>
+                                <select class="form-select" id="destinationSelect" required>
+                                    <option value="">Select Destination</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI-Powered Document Analysis -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-robot"></i> AI-Powered Document Analysis
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="apiDocFile" class="form-label">Upload API Documentation</label>
+                            <input type="file" class="form-control" id="apiDocFile" accept=".json,.yaml,.yml,.md,.txt">
+                            <div class="form-text">Supported: JSON, YAML, Markdown, Text</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="postmanFile" class="form-label">Upload Postman Collection</label>
+                            <input type="file" class="form-control" id="postmanFile" accept=".json">
+                            <div class="form-text">Upload your Postman collection JSON file</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="docContent" class="form-label">Or paste documentation content:</label>
+                    <textarea class="form-control" id="docContent" rows="6" placeholder="Paste your API documentation, Postman collection, or any relevant documentation here..."></textarea>
+                </div>
+                
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary" id="analyzeDocsBtn">
+                        <i class="fas fa-robot"></i> Analyze Documentation
+                    </button>
+                    <button type="button" class="btn btn-info" id="suggestMappingsBtn">
+                        <i class="fas fa-lightbulb"></i> Get AI Mapping Suggestions
+                    </button>
+                </div>
+                
+                <div id="aiAnalysisResult" class="mt-3" style="display: none;">
+                    <!-- AI analysis results will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Field Mappings -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Field Mappings</h5>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="addFieldMappingBtn">
+                    <i class="fas fa-plus"></i> Add Field Mapping
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="fieldMappings">
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-map fa-2x mb-3"></i>
+                        <p>No field mappings configured yet</p>
+                        <p class="small">Add field mappings manually or use AI suggestions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Mapping -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{{ url_for('mappings') }}" class="btn btn-secondary">Cancel</a>
+            <button type="button" class="btn btn-success" id="saveMappingBtn">
+                <i class="fas fa-save"></i> Save Mapping
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let fieldMappingCounter = 0;
+let currentSources = [];
+let currentDestinations = [];
+
+$(document).ready(function() {
+    loadSources();
+    loadDestinations();
+    
+    // File upload handlers
+    $('#apiDocFile').change(handleFileUpload);
+    $('#postmanFile').change(handleFileUpload);
+    
+    // AI analysis
+    $('#analyzeDocsBtn').click(analyzeDocumentation);
+    $('#suggestMappingsBtn').click(suggestMappings);
+    
+    // Field mapping management
+    $('#addFieldMappingBtn').click(addFieldMapping);
+    $('#saveMappingBtn').click(saveMapping);
+});
+
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            $('#docContent').val(e.target.result);
+        };
+        reader.readAsText(file);
+    }
+}
+
+function loadSources() {
+    $.get('/api/sources', function(data) {
+        if (data.success) {
+            currentSources = data.data;
+            const select = $('#sourceSelect');
+            select.empty().append('<option value="">Select Source</option>');
+            data.data.forEach(function(source) {
+                select.append(`<option value="${source.id}">${source.name} (${source.type})</option>`);
+            });
+        }
+    });
+}
+
+function loadDestinations() {
+    $.get('/api/destinations', function(data) {
+        if (data.success) {
+            currentDestinations = data.data;
+            const select = $('#destinationSelect');
+            select.empty().append('<option value="">Select Destination</option>');
+            data.data.forEach(function(destination) {
+                select.append(`<option value="${destination.id}">${destination.name} (${destination.type})</option>`);
+            });
+        }
+    });
+}
+
+function analyzeDocumentation() {
+    const content = $('#docContent').val();
+    if (!content.trim()) {
+        alert('Please provide documentation content');
+        return;
+    }
+    
+    const btn = $('#analyzeDocsBtn');
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Analyzing...');
+    
+    $.ajax({
+        url: '/api/ai/analyze-docs',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({content: content}),
+        success: function(data) {
+            if (data.success) {
+                $('#aiAnalysisResult').html(`
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-check"></i> Documentation Analysis Complete!</h6>
+                        <div class="mt-3">
+                            <h6>Analysis Summary:</h6>
+                            <pre class="bg-light p-3 rounded">${data.raw_content}</pre>
+                        </div>
+                    </div>
+                `).show();
+            } else {
+                $('#aiAnalysisResult').html(`
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Analysis Failed</h6>
+                        <p>${data.error}</p>
+                    </div>
+                `).show();
+            }
+        },
+        error: function() {
+            $('#aiAnalysisResult').html(`
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Request Failed</h6>
+                    <p>Failed to connect to AI service</p>
+                </div>
+            `).show();
+        },
+        complete: function() {
+            btn.prop('disabled', false).html('<i class="fas fa-robot"></i> Analyze Documentation');
+        }
+    });
+}
+
+function suggestMappings() {
+    const sourceId = $('#sourceSelect').val();
+    const destinationId = $('#destinationSelect').val();
+    const docContent = $('#docContent').val();
+    
+    if (!sourceId || !destinationId) {
+        alert('Please select both source and destination');
+        return;
+    }
+    
+    const btn = $('#suggestMappingsBtn');
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Getting Suggestions...');
+    
+    $.ajax({
+        url: '/api/ai/suggest-mappings',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            source_id: sourceId,
+            destination_id: destinationId,
+            documentation: docContent
+        }),
+        success: function(data) {
+            if (data.success && data.suggested_mappings) {
+                // Clear existing mappings
+                $('#fieldMappings').empty();
+                
+                // Add suggested mappings
+                data.suggested_mappings.forEach(function(mapping) {
+                    addFieldMapping(mapping.source_field, mapping.destination_field, mapping.transformation);
+                });
+                
+                $('#aiAnalysisResult').html(`
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-lightbulb"></i> AI Mapping Suggestions Applied!</h6>
+                        <p>Generated ${data.suggested_mappings.length} field mappings based on your documentation.</p>
+                    </div>
+                `).show();
+            } else {
+                $('#aiAnalysisResult').html(`
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle"></i> No Suggestions Available</h6>
+                        <p>${data.error || 'Unable to generate mapping suggestions'}</p>
+                    </div>
+                `).show();
+            }
+        },
+        error: function() {
+            $('#aiAnalysisResult').html(`
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Request Failed</h6>
+                    <p>Failed to get AI suggestions</p>
+                </div>
+            `).show();
+        },
+        complete: function() {
+            btn.prop('disabled', false).html('<i class="fas fa-lightbulb"></i> Get AI Mapping Suggestions');
+        }
+    });
+}
+
+function addFieldMapping(sourceField = '', destinationField = '', transformation = '') {
+    fieldMappingCounter++;
+    const mappingId = 'mapping_' + fieldMappingCounter;
+    
+    const mappingHtml = `
+        <div class="field-mapping mb-3 p-3 border rounded" id="${mappingId}">
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">Source Field</label>
+                    <input type="text" class="form-control source-field" value="${sourceField}" placeholder="source.field.name">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Destination Field</label>
+                    <input type="text" class="form-control destination-field" value="${destinationField}" placeholder="destination.field.name">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Transformation</label>
+                    <input type="text" class="form-control transformation" value="${transformation}" placeholder="Optional transformation function">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeFieldMapping('${mappingId}')">
+                            <i class="fas fa-trash"></i> Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $('#fieldMappings').append(mappingHtml);
+}
+
+function removeFieldMapping(mappingId) {
+    $('#' + mappingId).remove();
+    
+    // Show placeholder if no mappings left
+    if ($('.field-mapping').length === 0) {
+        $('#fieldMappings').html(`
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-map fa-2x mb-3"></i>
+                <p>No field mappings configured yet</p>
+                <p class="small">Add field mappings manually or use AI suggestions</p>
+            </div>
+        `);
+    }
+}
+
+function saveMapping() {
+    const mappingData = {
+        name: $('#mappingName').val(),
+        description: $('#mappingDescription').val(),
+        source_id: $('#sourceSelect').val(),
+        destination_id: $('#destinationSelect').val(),
+        field_mappings: []
+    };
+    
+    // Validate required fields
+    if (!mappingData.name || !mappingData.source_id || !mappingData.destination_id) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    // Collect field mappings
+    $('.field-mapping').each(function() {
+        const sourceField = $(this).find('.source-field').val();
+        const destinationField = $(this).find('.destination-field').val();
+        const transformation = $(this).find('.transformation').val();
+        
+        if (sourceField && destinationField) {
+            mappingData.field_mappings.push({
+                source_field: sourceField,
+                destination_field: destinationField,
+                transformation: transformation || null
+            });
+        }
+    });
+    
+    if (mappingData.field_mappings.length === 0) {
+        alert('Please add at least one field mapping');
+        return;
+    }
+    
+    const btn = $('#saveMappingBtn');
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+    
+    $.ajax({
+        url: '/api/mappings',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(mappingData),
+        success: function(data) {
+            if (data.success) {
+                showAlert('Mapping saved successfully!', 'success');
+                setTimeout(function() {
+                    window.location.href = '{{ url_for("mappings") }}';
+                }, 1500);
+            } else {
+                showAlert('Failed to save mapping: ' + data.error, 'danger');
+            }
+        },
+        error: function() {
+            showAlert('Failed to save mapping', 'danger');
+        },
+        complete: function() {
+            btn.prop('disabled', false).html('<i class="fas fa-save"></i> Save Mapping');
+        }
+    });
+}
+
+function showAlert(message, type) {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertHtml);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(function() {
+        $('.alert').fadeOut();
+    }, 5000);
+}
+</script>
+{% endblock %}

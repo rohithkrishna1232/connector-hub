@@ -1,0 +1,229 @@
+/* Custom styles for Data Integration Platform */
+
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --info-color: #17a2b8;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    background-color: white;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.btn {
+    border-radius: 0.375rem;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.modal-dialog {
+    max-width: 800px;
+}
+
+.config-section {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.375rem;
+    margin-top: 1rem;
+}
+
+.config-section h6 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--dark-color);
+}
+
+.list-group-item {
+    border: none;
+    padding: 0.75rem 0;
+}
+
+.list-group-item:not(:last-child) {
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* Status indicators */
+.status-running {
+    color: var(--primary-color);
+}
+
+.status-completed {
+    color: var(--success-color);
+}
+
+.status-failed {
+    color: var(--danger-color);
+}
+
+.status-pending {
+    color: var(--warning-color);
+}
+
+/* Mapping builder styles */
+.mapping-builder {
+    min-height: 400px;
+}
+
+.field-mapping {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 0.375rem;
+    border: 1px solid #e9ecef;
+}
+
+.field-mapping .source-field {
+    flex: 1;
+    margin-right: 1rem;
+}
+
+.field-mapping .arrow {
+    margin: 0 1rem;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+}
+
+.field-mapping .dest-field {
+    flex: 1;
+    margin-left: 1rem;
+}
+
+.transformation-rule {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.transformation-rule .function-name {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+/* Job status styles */
+.job-progress {
+    height: 1.5rem;
+}
+
+.job-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+}
+
+.job-stats .stat {
+    text-align: center;
+}
+
+.job-stats .stat-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.job-stats .stat-label {
+    font-size: 0.875rem;
+    color: var(--secondary-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .modal-dialog {
+        max-width: 95%;
+        margin: 1rem auto;
+    }
+    
+    .field-mapping {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .field-mapping .source-field,
+    .field-mapping .dest-field {
+        margin: 0 0 1rem 0;
+        flex: none;
+        width: 100%;
+    }
+    
+    .field-mapping .arrow {
+        margin: 0;
+        transform: rotate(90deg);
+    }
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Utility classes */
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bg-light-gray {
+    background-color: #f8f9fa;
+}
+
+.border-dashed {
+    border-style: dashed !important;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+/* Animation classes */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
