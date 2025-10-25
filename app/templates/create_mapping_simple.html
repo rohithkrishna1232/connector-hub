@@ -84,7 +84,7 @@
                             <i class="fas fa-bug"></i> Test
                         </button>
                         <button type="button" class="btn btn-sm btn-info ms-1" id="debugBtn">
-                            <i class="fas fa-search"></i> Debug
+                            <i class="fas fa-search"></i> ADD Fields
                         </button>
                     </div>
                 </div>
@@ -130,7 +130,7 @@
                                     <i class="fas fa-lightbulb"></i> AI Mapping Suggestions
                                     <span class="badge bg-primary" id="suggestionCount">0</span>
                                 </h6>
-                                <button type="button" class="btn btn-sm btn-success" id="addSelectedSuggestionsBtn">
+                                <button type="button" class="btn btn-sm btn-success" id="addSelectedSuggestionsBtn" onclick="handleAddSelectedClick()">
                                     <i class="fas fa-plus"></i> Add Selected to Mappings
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-primary ms-2" id="addAllSuggestionsBtn">
@@ -286,15 +286,19 @@ $(document).ready(function() {
         aiAutoMapFields();
     });
 
-    // Add Selected Suggestions button
-    $('#addSelectedSuggestionsBtn').click(function() {
-        console.log('🔵 Add Selected Suggestions button clicked!');
+    // Add Selected Suggestions button - Use event delegation to ensure it always works
+    $(document).off('click', '#addSelectedSuggestionsBtn').on('click', '#addSelectedSuggestionsBtn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🔵 Add Selected Suggestions button clicked via delegation!');
         addSelectedSuggestions();
     });
 
-    // Alternative event handler (in case the first one doesn't work)
-    $(document).on('click', '#addSelectedSuggestionsBtn', function() {
-        console.log('🔵 Add Selected Suggestions button clicked (delegated event)!');
+    // Alternative direct handler (backup)
+    $('#addSelectedSuggestionsBtn').off('click').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🔵 Add Selected Suggestions button clicked via direct handler!');
         addSelectedSuggestions();
     });
 
@@ -365,7 +369,7 @@ $(document).ready(function() {
         console.log('🧪 FORCING addSelectedSuggestions()...');
         addSelectedSuggestions();
         
-        alert('Debug info logged to console');
+        alert('AI Generated Fields added.');
     });
 
     // Select all suggestions checkbox
@@ -758,6 +762,12 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Direct onclick handler for the Add Selected button
+function handleAddSelectedClick() {
+    console.log('🔵 Add Selected button clicked via onclick handler!');
+    addSelectedSuggestions();
 }
 
 function aiAutoMapFields() {

@@ -18,6 +18,34 @@
     </div>
 </div>
 
+<!-- Postman Collection Import -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-file-upload"></i> Import from Postman Collection</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="destDocFile" class="form-label">Select Postman Collection</label>
+                    <input type="file" class="form-control" id="destDocFile" accept=".json">
+                    <div class="form-text">Upload a Postman collection JSON file to automatically create destinations</div>
+                </div>
+                <div class="mb-3">
+                    <label for="destDocContent" class="form-label">Or paste Postman collection JSON:</label>
+                    <textarea class="form-control" id="destDocContent" rows="6" placeholder="Paste your Postman collection JSON here..."></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-success" id="analyzeDestPostmanBtn">
+                        <i class="fas fa-rocket"></i> Analyze & Import
+                    </button>
+                </div>
+                <div id="destAnalysisResult" class="mt-3" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Destinations List -->
 <div class="row">
     <div class="col-12">
@@ -744,11 +772,177 @@ function showAlert(message, type) {
         </div>
     `;
     $('.container-fluid').prepend(alertHtml);
-    
+
     // Auto-dismiss after 5 seconds
     setTimeout(function() {
         $('.alert').fadeOut();
     }, 5000);
+}
+
+// Postman Collection Import for Destinations
+$('#destDocFile').change(function() {
+    const file = this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const content = e.target.result;
+            $('#destDocContent').val(content);
+        };
+        reader.readAsText(file);
+    }
+});
+
+$('#analyzeDestPostmanBtn').click(function() {
+    const content = $('#destDocContent').val();
+    if (!content.trim()) {
+        showAlert('Please provide Postman collection content', 'warning');
+        return;
+    }
+
+    $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Analyzing...');
+
+    $.ajax({
+        url: '/api/ai/analyze-postman',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({content: content}),
+        success: function(data) {
+            if (data.success) {
+                displayDestPostmanAnalysis(data);
+            } else {
+                $('#destAnalysisResult').html(`
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Analysis Failed</h6>
+                        <p>${data.error || 'Unable to analyze collection'}</p>
+                    </div>
+                `).show();
+            }
+        },
+        error: function() {
+            $('#destAnalysisResult').html(`
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Request Failed</h6>
+                    <p>Failed to analyze Postman collection</p>
+                </div>
+            `).show();
+        },
+        complete: function() {
+            $('#analyzeDestPostmanBtn').prop('disabled', false).html('<i class="fas fa-rocket"></i> Analyze & Import');
+        }
+    });
+});
+
+function displayDestPostmanAnalysis(data) {
+    const collection = data.collection_info;
+    const toolsEndpoints = data.tools_endpoints || {};
+
+    const aiAnalysis = data.ai_analysis || '';
+    const aiInsights = data.ai_insights || {};
+
+    let html = `
+        <div class="alert alert-success">
+            <h5><i class="fas fa-check-circle"></i> Collection Analyzed!</h5>
+            <p><strong>${collection.name}</strong> - Found ${collection.total_endpoints} endpoints</p>
+        </div>
+    `;
+
+    // Add AI insights if available
+    if (aiInsights.has_insights && aiAnalysis) {
+        html += `
+            <div class="card mb-3">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h6 class="mb-0"><i class="fas fa-robot"></i> AI-Powered Analysis</h6>
+                </div>
+                <div class="card-body">
+                    <div class="ai-analysis-content" style="white-space: pre-wrap; line-height: 1.6;">
+                        ${aiAnalysis.replace(/\n/g, '<br>')}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    html += `
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Select Tools to Import as Destinations (POST/PUT/PATCH endpoints)</h6>
+            </div>
+            <div class="card-body">
+    `;
+
+    Object.keys(toolsEndpoints).forEach(function(toolName) {
+        const tool = toolsEndpoints[toolName];
+        const postEndpoints = tool.post_endpoints || [];
+
+        if (postEndpoints.length > 0) {
+            html += `
+                <div class="form-check mb-3">
+                    <input class="form-check-input tool-checkbox" type="checkbox" value="${toolName}" id="dest-tool-${toolName}" checked>
+                    <label class="form-check-label" for="dest-tool-${toolName}">
+                        <strong>${toolName}</strong> - ${postEndpoints.length} POST/PUT/PATCH endpoint(s)
+                    </label>
+                </div>
+            `;
+        }
+    });
+
+    html += `
+            </div>
+            <div class="card-footer">
+                <button type="button" class="btn btn-success" id="createDestinationsFromToolsBtn">
+                    <i class="fas fa-plus"></i> Create Destinations
+                </button>
+            </div>
+        </div>
+    `;
+
+    $('#destAnalysisResult').html(html).show();
+
+    // Handle create destinations button
+    $('#createDestinationsFromToolsBtn').off('click').on('click', function() {
+        const selectedTools = {};
+        $('.tool-checkbox:checked').each(function() {
+            const toolName = $(this).val();
+            selectedTools[toolName] = {
+                selected: true,
+                as_source: false,
+                as_destination: true,
+                endpoints: toolsEndpoints[toolName].endpoints || []
+            };
+        });
+
+        if (Object.keys(selectedTools).length === 0) {
+            showAlert('Please select at least one tool', 'warning');
+            return;
+        }
+
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating Destinations...');
+
+        $.ajax({
+            url: '/api/ai/create-from-tools',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({selected_tools: selectedTools}),
+            success: function(data) {
+                if (data.success) {
+                    // Display detailed message about what was created/updated
+                    const message = data.message || `Created ${data.destinations_created || 0} destinations, updated ${data.destinations_updated || 0}`;
+                    showAlert(message, 'success');
+                    loadDestinations();
+                    $('#destDocContent').val('');
+                    $('#destAnalysisResult').hide();
+                } else {
+                    showAlert('Failed to create destinations: ' + data.error, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('Failed to create destinations', 'danger');
+            },
+            complete: function() {
+                $('#createDestinationsFromToolsBtn').prop('disabled', false).html('<i class="fas fa-plus"></i> Create Destinations');
+            }
+        });
+    });
 }
 </script>
 {% endblock %}

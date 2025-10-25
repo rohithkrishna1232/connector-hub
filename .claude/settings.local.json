@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Get-Process | Where-Object {$_ProcessName -like ''*python*''} | Select-Object ProcessName, Id, CPU | Format-Table\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

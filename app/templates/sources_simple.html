@@ -16,6 +16,34 @@
     </div>
 </div>
 
+<!-- Postman Collection Import -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-file-upload"></i> Import from Postman Collection</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="sourceDocFile" class="form-label">Select Postman Collection</label>
+                    <input type="file" class="form-control" id="sourceDocFile" accept=".json">
+                    <div class="form-text">Upload a Postman collection JSON file to automatically create sources</div>
+                </div>
+                <div class="mb-3">
+                    <label for="sourceDocContent" class="form-label">Or paste Postman collection JSON:</label>
+                    <textarea class="form-control" id="sourceDocContent" rows="6" placeholder="Paste your Postman collection JSON here..."></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary" id="analyzeSourcePostmanBtn">
+                        <i class="fas fa-rocket"></i> Analyze & Import
+                    </button>
+                </div>
+                <div id="sourceAnalysisResult" class="mt-3" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Sources List -->
 <div class="row">
     <div class="col-12">
@@ -133,6 +161,10 @@
 {% block scripts %}
 <script>
 $(document).ready(function() {
+    console.log('🚀 Sources page loaded, jQuery ready');
+    console.log('📍 Current URL:', window.location.href);
+    console.log('🔧 jQuery version:', $.fn.jquery);
+    
     loadSources();
     
     // Save new source
@@ -225,79 +257,120 @@ $(document).ready(function() {
 });
 
 function loadSources() {
+    console.log('🔍 loadSources() called');
+    $('#sourcesTable').html('<div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Loading sources...</div>');
+    
     $.get('/api/sources', function(data) {
+        console.log('✅ API response received:', data);
         if (data.success) {
             const sources = data.data;
+            console.log('📊 Sources data:', sources);
+            console.log('📈 Number of sources:', sources.length);
             let html = '';
-            
+
             if (sources.length === 0) {
-                html = `
-                    <div class="text-center py-5">
-                        <i class="fas fa-database fa-3x text-muted mb-3"></i>
-                        <h4>No sources configured</h4>
-                        <p class="text-muted">Add your first data source to get started</p>
-                    </div>
-                `;
+                console.log('⚠️ No sources found');
+                html = '<div class="text-center py-5">';
+                html += '<i class="fas fa-database fa-3x text-muted mb-3"></i>';
+                html += '<h4>No sources configured</h4>';
+                html += '<p class="text-muted">Add your first data source to get started</p>';
+                html += '</div>';
             } else {
-                html = `
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Description</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                
+                console.log('🔄 Processing sources...');
+                // Group sources by tool (like destinations)
+                const groupedByTool = {};
                 sources.forEach(function(source) {
-                    const typeIcon = getTypeIcon(source.type);
-                    html += `
-                        <tr>
-                            <td>
-                                <strong>${source.name}</strong>
-                            </td>
-                            <td>
-                                <span class="badge bg-primary">
-                                    <i class="${typeIcon}"></i> ${source.type.toUpperCase()}
-                                </span>
-                            </td>
-                            <td>${source.description || '-'}</td>
-                            <td>
-                                <span class="badge bg-success">Active</span>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" onclick="editSource('${source.id}')">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-info" onclick="testSource('${source.id}')">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteSource('${source.id}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
+                    const config = source.connection_config || source.config || {};
+                    const toolName = config.service_type || source.name || 'Other';
+
+                    if (!groupedByTool[toolName]) {
+                        groupedByTool[toolName] = [];
+                    }
+                    groupedByTool[toolName].push(source);
                 });
-                
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
+
+                // Generate HTML for grouped view
+                Object.keys(groupedByTool).forEach(function(toolName, index) {
+                    const toolSources = groupedByTool[toolName];
+                    const collapseId = 'source-tool-' + toolName.replace(/\s+/g, '-').toLowerCase();
+
+                    html += '<div class="card mb-2">';
+                    html += '<div class="card-header bg-light">';
+                    html += '<div class="d-flex justify-content-between align-items-center">';
+                    html += '<h6 class="mb-0">';
+                    html += '<button class="btn btn-link text-decoration-none collapsed p-0" type="button" data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" aria-expanded="false">';
+                    html += '<i class="fas fa-chevron-right me-2 toggle-icon"></i>';
+                    html += '<i class="fas fa-cube me-2 text-primary"></i>';
+                    html += '<strong>' + toolName + '</strong>';
+                    html += '<span class="badge bg-secondary ms-2">' + toolSources.length + ' endpoint' + (toolSources.length > 1 ? 's' : '') + '</span>';
+                    html += '</button>';
+                    html += '</h6>';
+                    html += '<div>';
+                    html += '<button class="btn btn-sm btn-outline-primary me-2" onclick="editToolVariablesSource(\'' + toolName + '\')">';
+                    html += '<i class="fas fa-cog"></i> Configure';
+                    html += '</button>';
+                    html += '<button class="btn btn-sm btn-outline-danger" onclick="deleteToolSources(\'' + toolName + '\')">';
+                    html += '<i class="fas fa-trash"></i> Delete All';
+                    html += '</button>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '<div id="' + collapseId + '" class="collapse">';
+                    html += '<div class="card-body p-0">';
+                    html += '<table class="table table-sm table-hover mb-0">';
+                    html += '<thead class="table-light">';
+                    html += '<tr>';
+                    html += '<th>Name</th>';
+                    html += '<th>Type</th>';
+                    html += '<th>Description</th>';
+                    html += '<th>Actions</th>';
+                    html += '</tr>';
+                    html += '</thead>';
+                    html += '<tbody>';
+
+                    toolSources.forEach(function(source) {
+                        const typeIcon = getTypeIcon(source.type);
+                        html += '<tr>';
+                        html += '<td><strong>' + source.name + '</strong></td>';
+                        html += '<td><span class="badge bg-primary"><i class="' + typeIcon + '"></i> ' + source.type.toUpperCase() + '</span></td>';
+                        html += '<td>' + (source.description || '-') + '</td>';
+                        html += '<td>';
+                        html += '<button class="btn btn-sm btn-outline-primary" onclick="editSource(\'' + source.id + '\')">';
+                        html += '<i class="fas fa-edit"></i>';
+                        html += '</button> ';
+                        html += '<button class="btn btn-sm btn-outline-info" onclick="testSource(\'' + source.id + '\')">';
+                        html += '<i class="fas fa-play"></i>';
+                        html += '</button> ';
+                        html += '<button class="btn btn-sm btn-outline-danger" onclick="deleteSource(\'' + source.id + '\')">';
+                        html += '<i class="fas fa-trash"></i>';
+                        html += '</button>';
+                        html += '</td>';
+                        html += '</tr>';
+                    });
+
+                    html += '</tbody>';
+                    html += '</table>';
+                    html += '</div>';
+                    html += '</div>';
+                    html += '</div>';
+                });
             }
-            
+
             $('#sourcesTable').html(html);
+
+            // Add toggle icon rotation
+            $('.btn-link[data-bs-toggle="collapse"]').on('click', function() {
+                const icon = $(this).find('.toggle-icon');
+                icon.toggleClass('fa-chevron-right fa-chevron-down');
+            });
+            console.log('✅ Sources loaded successfully');
         } else {
-            $('#sourcesTable').html('<div class="alert alert-danger">Failed to load sources</div>');
+            console.log('❌ API returned success=false:', data);
+            $('#sourcesTable').html('<div class="alert alert-danger">Failed to load sources: ' + (data.error || 'Unknown error') + '</div>');
         }
-    }).fail(function() {
-        $('#sourcesTable').html('<div class="alert alert-danger">Failed to connect to server</div>');
+    }).fail(function(xhr, status, error) {
+        console.log('❌ AJAX request failed:', {xhr: xhr, status: status, error: error});
+        $('#sourcesTable').html('<div class="alert alert-danger">Failed to connect to server: ' + error + '</div>');
     });
 }
 
@@ -363,11 +436,31 @@ function editSource(sourceId) {
 }
 
 function testSource(sourceId) {
-    $.post('/api/sources/' + sourceId + '/test', function(data) {
-        if (data.success) {
-            showAlert('Source test successful', 'success');
-        } else {
-            showAlert('Source test failed: ' + data.error, 'danger');
+    console.log('Testing source:', sourceId);
+
+    $.ajax({
+        url: '/api/sources/' + sourceId + '/test',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({endpoint_index: 0}),
+        success: function(data) {
+            if (data.success) {
+                const result = data.data;
+                let message = `✅ ${result.method} ${result.url}<br>`;
+                message += `<strong>Status:</strong> ${result.status_code} ${result.message}<br>`;
+
+                if (result.response_preview) {
+                    message += `<details><summary>Response Preview</summary><pre>${result.response_preview}</pre></details>`;
+                }
+
+                showAlert(message, result.status_code < 400 ? 'success' : 'warning');
+            } else {
+                showAlert(`❌ Test failed: ${data.error}<br><small>URL: ${data.url || 'N/A'}</small>`, 'danger');
+            }
+        },
+        error: function(xhr) {
+            const error = xhr.responseJSON || {error: 'Unknown error'};
+            showAlert(`❌ Test failed: ${error.error}`, 'danger');
         }
     });
 }
@@ -400,11 +493,458 @@ function showAlert(message, type) {
         </div>
     `;
     $('.container-fluid').prepend(alertHtml);
-    
+
     // Auto-dismiss after 5 seconds
     setTimeout(function() {
         $('.alert').fadeOut();
     }, 5000);
+}
+
+// Postman Collection Import
+$('#sourceDocFile').change(function() {
+    const file = this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const content = e.target.result;
+            $('#sourceDocContent').val(content);
+        };
+        reader.readAsText(file);
+    }
+});
+
+$('#analyzeSourcePostmanBtn').click(function() {
+    const content = $('#sourceDocContent').val();
+    if (!content.trim()) {
+        showAlert('Please provide Postman collection content', 'warning');
+        return;
+    }
+
+    $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Analyzing...');
+
+    $.ajax({
+        url: '/api/ai/analyze-postman',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({content: content}),
+        success: function(data) {
+            if (data.success) {
+                displaySourcePostmanAnalysis(data);
+            } else {
+                $('#sourceAnalysisResult').html(`
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Analysis Failed</h6>
+                        <p>${data.error || 'Unable to analyze collection'}</p>
+                    </div>
+                `).show();
+            }
+        },
+        error: function() {
+            $('#sourceAnalysisResult').html(`
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Request Failed</h6>
+                    <p>Failed to analyze Postman collection</p>
+                </div>
+            `).show();
+        },
+        complete: function() {
+            $('#analyzeSourcePostmanBtn').prop('disabled', false).html('<i class="fas fa-rocket"></i> Analyze & Import');
+        }
+    });
+});
+
+function displaySourcePostmanAnalysis(data) {
+    const collection = data.collection_info;
+    const toolsEndpoints = data.tools_endpoints || {};
+
+    const aiAnalysis = data.ai_analysis || '';
+    const aiInsights = data.ai_insights || {};
+
+    let html = `
+        <div class="alert alert-success">
+            <h5><i class="fas fa-check-circle"></i> Collection Analyzed!</h5>
+            <p><strong>${collection.name}</strong> - Found ${collection.total_endpoints} endpoints</p>
+        </div>
+    `;
+
+    // Add AI insights if available
+    if (aiInsights.has_insights && aiAnalysis) {
+        html += `
+            <div class="card mb-3">
+                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h6 class="mb-0"><i class="fas fa-robot"></i> AI-Powered Analysis</h6>
+                </div>
+                <div class="card-body">
+                    <div class="ai-analysis-content" style="white-space: pre-wrap; line-height: 1.6;">
+                        ${aiAnalysis.replace(/\n/g, '<br>')}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    html += `
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Select Tools to Import as Sources (GET endpoints)</h6>
+            </div>
+            <div class="card-body">
+    `;
+
+    Object.keys(toolsEndpoints).forEach(function(toolName) {
+        const tool = toolsEndpoints[toolName];
+        const getEndpoints = tool.get_endpoints || [];
+
+        if (getEndpoints.length > 0) {
+            html += `
+                <div class="form-check mb-3">
+                    <input class="form-check-input tool-checkbox" type="checkbox" value="${toolName}" id="source-tool-${toolName}" checked>
+                    <label class="form-check-label" for="source-tool-${toolName}">
+                        <strong>${toolName}</strong> - ${getEndpoints.length} GET endpoint(s)
+                    </label>
+                </div>
+            `;
+        }
+    });
+
+    html += `
+            </div>
+            <div class="card-footer">
+                <button type="button" class="btn btn-success" id="createSourcesFromToolsBtn">
+                    <i class="fas fa-plus"></i> Create Sources
+                </button>
+            </div>
+        </div>
+    `;
+
+    $('#sourceAnalysisResult').html(html).show();
+
+    // Handle create sources button
+    $('#createSourcesFromToolsBtn').off('click').on('click', function() {
+        const selectedTools = {};
+        $('.tool-checkbox:checked').each(function() {
+            const toolName = $(this).val();
+            selectedTools[toolName] = {
+                selected: true,
+                as_source: true,
+                as_destination: false,
+                endpoints: toolsEndpoints[toolName].endpoints || []
+            };
+        });
+
+        if (Object.keys(selectedTools).length === 0) {
+            showAlert('Please select at least one tool', 'warning');
+            return;
+        }
+
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating Sources...');
+
+        $.ajax({
+            url: '/api/ai/create-from-tools',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({selected_tools: selectedTools}),
+            success: function(data) {
+                if (data.success) {
+                    // Display detailed message about what was created/updated
+                    const message = data.message || `Created ${data.sources_created || 0} sources, updated ${data.sources_updated || 0}`;
+                    showAlert(message, 'success');
+                    loadSources();
+                    $('#sourceDocContent').val('');
+                    $('#sourceAnalysisResult').hide();
+                } else {
+                    showAlert('Failed to create sources: ' + data.error, 'danger');
+                }
+            },
+            error: function() {
+                showAlert('Failed to create sources', 'danger');
+            },
+            complete: function() {
+                $('#createSourcesFromToolsBtn').prop('disabled', false).html('<i class="fas fa-plus"></i> Create Sources');
+            }
+        });
+    });
+}
+
+function deleteToolSources(toolName) {
+    if (confirm('Are you sure you want to delete ALL sources for ' + toolName + '? This will remove all endpoints and configurations.')) {
+        // Get all sources for this tool
+        $.get('/api/sources', function(data) {
+            if (data.success) {
+                const sources = data.data;
+                const toolSources = sources.filter(function(s) {
+                    const config = s.connection_config || s.config || {};
+                    return (config.service_type || s.name) === toolName;
+                });
+
+                let deleteCount = 0;
+                let totalToDelete = toolSources.length;
+
+                if (totalToDelete === 0) {
+                    showAlert('No sources found for ' + toolName, 'warning');
+                    return;
+                }
+
+                // Delete each source
+                toolSources.forEach(function(source) {
+                    $.ajax({
+                        url: '/api/sources/' + source.id,
+                        method: 'DELETE',
+                        success: function() {
+                            deleteCount++;
+                            if (deleteCount === totalToDelete) {
+                                loadSources();
+                                showAlert('All ' + totalToDelete + ' source(s) for ' + toolName + ' deleted successfully', 'success');
+                            }
+                        }
+                    });
+                });
+            }
+        });
+    }
+}
+
+function editToolVariablesSource(toolName) {
+    // Load tool-level variables AND auth config
+    $.when(
+        $.get('/api/tool-variables/' + encodeURIComponent(toolName)),
+        $.get('/api/tool-auth/' + encodeURIComponent(toolName)),
+        $.get('/api/sources')
+    ).done(function(toolVarsResult, authResult, sourcesResult) {
+        const toolVarsData = toolVarsResult[0];
+        const authData = authResult[0];
+        const data = sourcesResult[0];
+
+        if (data.success) {
+            const sources = data.data;
+            const toolSource = sources.find(function(s) {
+                const config = s.connection_config || s.config || {};
+                return (config.service_type || s.name) === toolName;
+            });
+
+            if (!toolSource) return;
+
+            const config = toolSource.connection_config || toolSource.config || {};
+            const configVars = config.variables || {};
+            const toolLevelVars = toolVarsData.data || {};
+            const toolAuth = authData.data || {type: 'none', config: {}};
+
+                $('#editSourceId').val(toolSource.id);
+                $('#editSourceName').val(toolName);
+                $('#editSourceType').val(toolSource.type);
+                $('#editSourceConfig').val(JSON.stringify(config, null, 2));
+                $('#editSourceDescription').val(toolSource.description);
+
+                // Clear and populate variables section
+                $('#sourceVariablesList').empty();
+
+                if (Object.keys(configVars).length > 0) {
+                    Object.keys(configVars).forEach(function(varName) {
+                        const varData = configVars[varName];
+                        const currentValue = toolLevelVars[varName] || varData.value || '';
+
+                        const varHtml = `
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <code>${varName}</code>
+                                    ${varData.required ? '<span class="text-danger">*</span>' : ''}
+                                    <span class="badge bg-secondary ms-1">${varData.type || 'text'}</span>
+                                </label>
+                                <input type="text"
+                                       class="form-control source-var-input"
+                                       data-var-name="${varName}"
+                                       value="${currentValue}"
+                                       placeholder="${varData.description || 'Enter value'}"
+                                       ${varData.required ? 'required' : ''}>
+                                <small class="text-muted">${varData.description || ''}</small>
+                            </div>
+                        `;
+                        $('#sourceVariablesList').append(varHtml);
+                    });
+
+                    $('#sourceVariablesSection').show();
+
+                    // Update the save button to save tool variables
+                    $('#updateSourceBtn').off('click').on('click', function() {
+                        const variables = {};
+                        $('.source-var-input').each(function() {
+                            const varName = $(this).data('var-name');
+                            const value = $(this).val();
+                            variables[varName] = value;
+                        });
+
+                        $.ajax({
+                            url: '/api/tool-variables/' + encodeURIComponent(toolName),
+                            method: 'PUT',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ variables: variables }),
+                            success: function(data) {
+                                if (data.success) {
+                                    showAlert('Tool variables for ' + toolName + ' saved successfully!', 'success');
+                                    $('#editSourceModal').modal('hide');
+                                } else {
+                                    showAlert('Failed to save variables: ' + data.error, 'danger');
+                                }
+                            },
+                            error: function() {
+                                showAlert('Failed to save variables', 'danger');
+                            }
+                        });
+                    });
+                } else {
+                    $('#sourceVariablesSection').hide();
+                }
+
+                // Add Authentication Configuration Section
+                const authHtml = `
+                    <hr>
+                    <h6><i class="fas fa-lock"></i> Authentication Configuration</h6>
+                    <div class="mb-3">
+                        <label class="form-label">Authentication Type</label>
+                        <select class="form-select" id="authTypeSelect">
+                            <option value="none" ${toolAuth.type === 'none' ? 'selected' : ''}>None</option>
+                            <option value="api_key" ${toolAuth.type === 'api_key' ? 'selected' : ''}>API Key</option>
+                            <option value="bearer" ${toolAuth.type === 'bearer' ? 'selected' : ''}>Bearer Token</option>
+                            <option value="basic" ${toolAuth.type === 'basic' ? 'selected' : ''}>Basic Auth</option>
+                            <option value="oauth1" ${toolAuth.type === 'oauth1' ? 'selected' : ''}>OAuth 1.0a</option>
+                            <option value="oauth2" ${toolAuth.type === 'oauth2' ? 'selected' : ''}>OAuth 2.0</option>
+                        </select>
+                    </div>
+                    <div id="authConfigFields"></div>
+                `;
+                $('#sourceVariablesList').append(authHtml);
+
+                // Function to render auth-specific fields
+                function renderAuthFields(authType) {
+                    let fieldsHtml = '';
+                    const authConfig = toolAuth.config || {};
+
+                    if (authType === 'api_key') {
+                        fieldsHtml = `
+                            <div class="mb-3">
+                                <label class="form-label">API Key <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control auth-field" data-field="api_key" value="${authConfig.api_key || ''}" placeholder="Enter API key">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Header Name</label>
+                                <input type="text" class="form-control auth-field" data-field="header_name" value="${authConfig.header_name || 'X-API-Key'}" placeholder="X-API-Key">
+                                <small class="text-muted">Header name for the API key (default: X-API-Key)</small>
+                            </div>
+                        `;
+                    } else if (authType === 'bearer') {
+                        fieldsHtml = `
+                            <div class="mb-3">
+                                <label class="form-label">Bearer Token <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control auth-field" data-field="token" value="${authConfig.token || ''}" placeholder="Enter bearer token">
+                            </div>
+                        `;
+                    } else if (authType === 'basic') {
+                        fieldsHtml = `
+                            <div class="mb-3">
+                                <label class="form-label">Username <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control auth-field" data-field="username" value="${authConfig.username || ''}" placeholder="Enter username">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control auth-field" data-field="password" value="${authConfig.password || ''}" placeholder="Enter password">
+                            </div>
+                        `;
+                    } else if (authType === 'oauth1') {
+                        fieldsHtml = `
+                            <div class="mb-3">
+                                <label class="form-label">Consumer Key <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control auth-field" data-field="consumer_key" value="${authConfig.consumer_key || authConfig.consumerKey || ''}" placeholder="Enter consumer key">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Consumer Secret <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control auth-field" data-field="consumer_secret" value="${authConfig.consumer_secret || authConfig.consumerSecret || ''}" placeholder="Enter consumer secret">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Access Token <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control auth-field" data-field="token" value="${authConfig.token || ''}" placeholder="Enter access token">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Token Secret <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control auth-field" data-field="token_secret" value="${authConfig.token_secret || authConfig.tokenSecret || ''}" placeholder="Enter token secret">
+                            </div>
+                        `;
+                    } else if (authType === 'oauth2') {
+                        fieldsHtml = `
+                            <div class="mb-3">
+                                <label class="form-label">Access Token <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control auth-field" data-field="access_token" value="${authConfig.access_token || ''}" placeholder="Enter access token">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Token Type</label>
+                                <input type="text" class="form-control auth-field" data-field="token_type" value="${authConfig.token_type || 'Bearer'}" placeholder="Bearer">
+                            </div>
+                        `;
+                    }
+
+                    $('#authConfigFields').html(fieldsHtml);
+                }
+
+                // Initial render
+                renderAuthFields(toolAuth.type);
+
+                // Re-render when auth type changes
+                $('#authTypeSelect').on('change', function() {
+                    renderAuthFields($(this).val());
+                });
+
+                // Update save button to save both variables AND auth
+                $('#updateSourceBtn').off('click').on('click', function() {
+                    const variables = {};
+                    $('.source-var-input').each(function() {
+                        const varName = $(this).data('var-name');
+                        const value = $(this).val();
+                        variables[varName] = value;
+                    });
+
+                    const authType = $('#authTypeSelect').val();
+                    const authConfig = {};
+                    $('.auth-field').each(function() {
+                        const field = $(this).data('field');
+                        const value = $(this).val();
+                        if (value) authConfig[field] = value;
+                    });
+
+                    // Save variables
+                    $.ajax({
+                        url: '/api/tool-variables/' + encodeURIComponent(toolName),
+                        method: 'PUT',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ variables: variables }),
+                        success: function() {
+                            // Save auth config
+                            $.ajax({
+                                url: '/api/tool-auth/' + encodeURIComponent(toolName),
+                                method: 'PUT',
+                                contentType: 'application/json',
+                                data: JSON.stringify({ type: authType, config: authConfig }),
+                                success: function(data) {
+                                    if (data.success) {
+                                        showAlert('Configuration for ' + toolName + ' saved successfully!', 'success');
+                                        $('#editSourceModal').modal('hide');
+                                    } else {
+                                        showAlert('Failed to save configuration: ' + data.error, 'danger');
+                                    }
+                                },
+                                error: function() {
+                                    showAlert('Failed to save authentication', 'danger');
+                                }
+                            });
+                        },
+                        error: function() {
+                            showAlert('Failed to save variables', 'danger');
+                        }
+                    });
+                });
+
+                $('#editSourceModal').modal('show');
+            }
+        });
+    });
 }
 </script>
 {% endblock %}
